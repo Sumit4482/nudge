@@ -1,0 +1,676 @@
+<title>Nudge Build Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..700&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm reading column. Hero + progress, then reference (decisions, brief, planner, design), then 9 build phases, then risks. */
+:root{
+  --bg:#F8F2EC; --bg2:#FFFFFF; --ink:#33283A; --mute:#6F6272; --line:#E6DAD0; --soft:#F1E6DC;
+  --acc:#C0603F; --acc-ink:#fff; --good:#3F8F72; --code-bg:#2C2538; --code-ink:#F2ECE4; --code-mute:#A79DB3;
+  --f-display:'Bricolage Grotesque',system-ui,sans-serif; --f-body:'Figtree',system-ui,sans-serif; --f-mono:'DM Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15192B;--bg2:#1C2136;--ink:#EEEAF2;--mute:#A3A9C4;--line:#2D3350;--soft:#232944;--acc:#E39A7A;--acc-ink:#2A1A15;--good:#6CC2A0;--code-bg:#0E1220;--code-ink:#EEEAF2;--code-mute:#8C93B0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15192B;--bg2:#1C2136;--ink:#EEEAF2;--mute:#A3A9C4;--line:#2D3350;--soft:#232944;--acc:#E39A7A;--acc-ink:#2A1A15;--good:#6CC2A0;--code-bg:#0E1220;--code-ink:#EEEAF2;--code-mute:#8C93B0;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.wrap{max-width:820px;margin:0 auto;padding-block:48px 90px;display:grid;gap:56px}
+h1,h2,h3,p,ul,ol{margin:0}
+h1{font:600 clamp(36px,7vw,58px)/1.02 var(--f-display);letter-spacing:-.03em;text-wrap:balance}
+h2{font:600 28px/1.15 var(--f-display);letter-spacing:-.02em;text-wrap:balance}
+h3{font:600 21px/1.2 var(--f-display);letter-spacing:-.015em}
+p,li{max-width:68ch}
+.lede{font-size:18px;color:var(--mute);margin-top:14px;max-width:60ch}
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.sec{display:grid;gap:18px}
+.sec>p{color:var(--mute)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--soft);padding:2px 6px;border-radius:6px}
+a{color:var(--acc)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,summary:focus-visible,a:focus-visible{outline:2.5px solid var(--acc);outline-offset:2px;border-radius:6px}
+
+.hero{display:grid;gap:22px}
+.prog{display:grid;gap:8px;max-width:420px}
+.prog .bar{height:8px;border-radius:8px;background:var(--soft);overflow:hidden}
+.prog .bar b{display:block;height:100%;width:0;background:var(--acc);border-radius:8px;transition:width .9s cubic-bezier(.22,.8,.3,1)}
+.prog span{font:500 13px var(--f-mono);color:var(--mute)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flow span{background:var(--bg2);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-weight:500;font-size:14px}
+.flow i{font-style:normal;color:var(--mute)}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font:500 13px var(--f-mono);text-decoration:none;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:6px 11px}
+.toc a:hover{border-color:var(--acc)}
+
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:22px;display:grid;gap:14px;min-width:0}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:18px;background:var(--bg2)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:16px;min-width:0}
+.code .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px 10px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.code .bar span{font:500 12px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--code-mute)}
+.copy{height:32px;padding:0 13px;border-radius:9px;background:var(--acc);color:var(--acc-ink);font:600 13px var(--f-body);transition:transform .2s}
+.copy:active{transform:scale(.96)}
+.code pre{margin:0;padding:16px;overflow-x:auto;font:400 13px/1.6 var(--f-mono);white-space:pre-wrap;word-break:break-word;max-height:520px;overflow-y:auto}
+
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.sw{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--bg2);display:grid}
+.sw .sky{height:92px;position:relative}
+.sw .sky i{position:absolute;right:16px;top:14px;width:30px;height:30px;border-radius:50%}
+.sw .meta{padding:11px 13px;display:grid;gap:3px;font-size:13px}
+.sw .meta b{font:600 15px var(--f-display)}
+.sw .meta span{font:400 12px var(--f-mono);color:var(--mute)}
+.sw .dots{display:flex;gap:6px;margin-top:4px}
+.sw .dots u{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.12);display:block}
+
+.phase{display:grid;gap:16px;scroll-margin-top:20px}
+.ph-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ph-n{font:500 13px var(--f-mono);background:var(--acc);color:var(--acc-ink);border-radius:10px;padding:4px 10px}
+.ph-t{font:500 13px var(--f-mono);color:var(--mute)}
+.ph-head .donebtn{margin-left:auto;display:flex;gap:8px;align-items:center;height:36px;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);font-weight:600;font-size:14px;transition:all .3s}
+.phase.isdone .donebtn{background:var(--good);border-color:var(--good);color:#fff}
+.phase.isdone h3{opacity:.55}
+.lab{font:600 12px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+.phase ol,.phase ul,.sec ul,.sec ol{padding-left:22px;display:grid;gap:7px}
+.phase li::marker{color:var(--acc);font-weight:600}
+.cols{display:grid;grid-template-columns:1fr;gap:18px}
+.note{border-left:3px solid var(--acc);background:var(--soft);padding:12px 16px;border-radius:0 14px 14px 0;font-size:14.5px;color:var(--ink)}
+.note b{font-weight:600}
+.grp{display:grid;gap:8px;padding-top:26px;border-top:1px solid var(--line)}
+.grp p{color:var(--mute)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.kv div{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:grid;gap:4px}
+.kv b{font:600 16px var(--f-display)}
+.kv span{font-size:14px;color:var(--mute)}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="eyebrow">Build guide · Android · Expo SDK 58</span>
+    <h1>Nudge, from empty folder to daily driver</h1>
+    <p class="lede">A personal app that plans your day around when you actually wake, leave and get home, keeps one task pinned until you prove it's done, and rewards you softly. Follow the phases in order. Each has a prompt you paste into Claude Code.</p>
+    <div class="flow" aria-label="Core loop"><span>Tap an anchor</span><i>→</i><span>Day re-plans</span><i>→</i><span>Start a task</span><i>→</i><span>Pinned notification</span><i>→</i><span>Photo proof</span><i>→</i><span>Reward</span></div>
+    <div class="prog"><div class="bar"><b id="pbar"></b></div><span id="ptxt">0 of 19 phases done</span></div>
+    <nav class="toc" aria-label="Sections"><a href="#how">How to use</a><a href="#decisions">Decisions</a><a href="#brief">Project brief</a><a href="#planner">Planner</a><a href="#design">Design</a><a href="#addons">Add-ons</a><a href="#phases">Phases</a><a href="#risks">Risks</a><a href="#later">Later</a></nav>
+  </header>
+
+  <section class="sec" id="how">
+    <h2>How to use this guide</h2>
+    <ol>
+      <li>Do <b>Phase 0</b> first. It creates the project, installs everything and puts the project brief where Claude Code reads it.</li>
+      <li>Start a fresh Claude Code session in the project folder for each phase. Paste that phase's prompt.</li>
+      <li>Check the <b>Done when</b> list on your phone before moving on. Then mark the phase done here.</li>
+      <li>Keep <code>docs/prototype.html</code> in the project. It is the visual and behavioral reference, and its <code>plan()</code> function is a working version of the planner.</li>
+    </ol>
+    <p class="note"><b>Expo changes every release.</b> The project's AGENTS.md tells Claude Code to read the versioned docs for SDK 58 before touching any Expo API. Every prompt below repeats that, because it prevents the most common mistakes.</p>
+    <p class="note"><b>Fastest route to something you use daily:</b> Phases 0, 1, 2, 3, 4 and 6. That gives you the planner, the screens, the living sky, the pinned notification with proof, and rewards. Then Phases 17 and 18 for the proof wall website. Do Phases 5, 7, 8 and the add-ons after a week of real use. Skip Phase 11 (focus lock) until everything else feels solid.</p>
+  </section>
+
+  <section class="sec" id="decisions">
+    <h2>Decisions already made</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>Area</th><th>Choice</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Platform</td><td>Android only, personal use</td><td>Android is the only one that can pin a notification so you can't swipe it away. iPhone can't.</td></tr>
+        <tr><td>Framework</td><td>Expo SDK 58, TypeScript, Expo Router</td><td>Already scaffolded. Routes live in <code>src/app</code>.</td></tr>
+        <tr><td>Run on phone</td><td>EAS cloud dev build (APK)</td><td>This Mac has no Android SDK. A cloud build avoids installing Android Studio. Expo Go can't do this app (custom notifications).</td></tr>
+        <tr><td>State</td><td>zustand + AsyncStorage, local first</td><td>The app works offline and every screen reads local data. The backend only holds shared proofs and server-side secrets.</td></tr>
+        <tr><td>Pinned notification</td><td>expo-notifications with <code>sticky: true</code></td><td>Docs for SDK 58 confirm <code>sticky</code> on Android maps to the OS "ongoing" flag.</td></tr>
+        <tr><td>Proof</td><td>expo-image-picker camera, saved on device</td><td>Honor-system photo. No AI checking in v1.</td></tr>
+        <tr><td>Calendar</td><td>expo-calendar, read only</td><td>Reads your phone's synced Google Calendar. No Google login code.</td></tr>
+        <tr><td>AI breakdown</td><td>Claude API through a Supabase Edge Function</td><td>The key stays on the server, not on the phone. If you do Phase 7 before Phase 17, start with the key on the device and move it in Phase 17.</td></tr>
+        <tr><td>Motion</td><td>react-native-reanimated</td><td>Layout transitions for the re-plan, cross-fades for the sky.</td></tr>
+        <tr><td>Tests</td><td>vitest for the planner only</td><td>The planner is pure TypeScript with no React Native imports, so it tests fast.</td></tr>
+        <tr><td>UI</td><td>Plain StyleSheet, theme tokens, Reanimated</td><td>No UI kit. The design is custom, and a kit would fight it and add setup time.</td></tr>
+        <tr><td>Backend</td><td>Supabase: Auth, Postgres, Storage, Edge Functions</td><td>One free service covers sign-in, the proofs table, photo storage and server-side secrets. Row-level security keeps private rows private.</td></tr>
+        <tr><td>Proof wall site</td><td>Next.js on Vercel</td><td>Reads a public view from Supabase and refreshes every minute. Free tier is enough.</td></tr>
+        <tr><td>Wall visibility</td><td>Fully public, indexable, 30 minute posting delay</td><td>You chose public. The delay keeps it from showing where you are right now, and each proof is still shared by choice.</td></tr>
+        <tr><td>Photos</td><td>expo-image-manipulator before upload</td><td>Resize to about 1080 px and re-save as JPEG. That also removes GPS and camera details.</td></tr>
+        <tr><td>Updates</td><td>EAS Update</td><td>Push code changes to your phone in minutes without rebuilding the APK. Only native changes (new modules) need a rebuild.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="sec" id="brief">
+    <h2>Project brief</h2>
+    <p>Paste this at the bottom of the project's <code>CLAUDE.md</code> in Phase 0. Every later prompt relies on it, so Claude Code always knows the rules.</p>
+    <div class="code"><div class="bar"><span>Paste into CLAUDE.md</span><button class="copy" data-copy="brief">Copy</button></div><pre id="brief-pre"></pre></div>
+  </section>
+
+  <section class="sec" id="planner">
+    <h2>Planner: how the day gets built</h2>
+    <p>The planner is one pure function. It reruns every time an anchor is tapped, a task is added or completed, or the clock moves. These cases become your first tests in Phase 1.</p>
+    <div class="kv" aria-label="Planner defaults">
+      <div><b class="num">07:30 / 10:15</b><span>Default wake / leave for office, used until you tap</span></div>
+      <div><b class="num">19:30 / 23:30</b><span>Default home / sleep</span></div>
+      <div><b class="num">20 min</b><span>Get-ready buffer after wake and after home. 20 before leaving. 30 before sleep.</span></div>
+      <div><b class="num">10 min</b><span>Gap between tasks. Windows under 10 minutes are dropped.</span></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>Situation (weekday)</th><th>Expected result</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Woke 07:42, clock 07:50</td><td>Morning window 08:02 to 09:55. Workout (30 min) fits there.</td></tr>
+        <tr><td class="num">2</td><td>Tap "I'm home" at 17:40</td><td>Evening opens at 18:00 instead of the predicted 19:50. Tonight gains 110 minutes. Tasks that went to tomorrow pull back in.</td></tr>
+        <tr><td class="num">3</td><td>Woke at 09:30</td><td>Morning window is 5 minutes, so it is dropped. The workout moves to the evening.</td></tr>
+        <tr><td class="num">4</td><td>Tap "Leaving for office"</td><td>Every unfinished morning task moves to tonight. Evening times show as predicted (~) until home is tapped.</td></tr>
+        <tr><td class="num">5</td><td>Tap "Going to sleep"</td><td>All remaining tasks go to tomorrow. Nothing is placed.</td></tr>
+        <tr><td class="num">6</td><td>Saturday, no office</td><td>Three windows (wake+20 to 13:00, 14:00 to 18:30, 19:30 to sleep−30). Routines such as laundry and cleaning appear first.</td></tr>
+        <tr><td class="num">7</td><td>More work than evening time</td><td>Lowest priority tasks go to "later". Must-do tasks are placed first.</td></tr>
+        <tr><td class="num">8</td><td>Calendar event 20:00 to 21:00 (Phase 5)</td><td>That hour is removed from the evening window. Tasks flow around it.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="code"><div class="bar"><span>Types to start from · TypeScript</span><button class="copy" data-copy="types">Copy</button></div><pre id="types-pre"></pre></div>
+  </section>
+
+  <section class="sec" id="design">
+    <h2>Design: the sky is the interface</h2>
+    <p>The whole app tints to the time of your day: soft blush after waking, misty blue at the office, rose at dusk, deep calm blue at night. Every transition is slow and has no bounce. The goal is that opening the app feels like a breath, not an alarm.</p>
+    <div class="swatches" id="swatches"></div>
+    <div class="kv">
+      <div><b>Easing</b><span>cubic-bezier(.22, .8, .3, 1) everywhere. No overshoot, no shake.</span></div>
+      <div><b>Durations</b><span>Sky cross-fade 2.2s · sun and moon 2.6s · rows re-plan 0.9s · sheets 0.8s</span></div>
+      <div><b>Ambient</b><span>Timer ring breathes (6s). Next-up ring pulses (3.4s). Clouds drift (40s).</span></div>
+      <div><b>Reward</b><span>Check draws itself, XP counts up, soft glow motes float up and fade. No confetti burst.</span></div>
+      <div><b>Type</b><span>Bricolage Grotesque for headings, Figtree for text, DM Mono for times.</span></div>
+      <div><b>Accessibility</b><span>Respect reduce-motion. Keep text contrast at 4.5:1 or better on cards.</span></div>
+    </div>
+  </section>
+
+  <section class="sec" id="addons">
+    <h2>Your add-ons: v1.1 feature brief</h2>
+    <p>These 19 features are already working in the demo app. Build them <b>after Phase 8 and a week of daily use</b>, so your real habits tell you what to tune. When you start Phase 9, paste this addendum under the main brief in <code>CLAUDE.md</code>.</p>
+    <div class="kv" aria-label="Add-on groups">
+      <div><b>Avoidance</b><span>Why am I avoiding this, if-then plans, snooze cost, stakes, focus lock</span></div>
+      <div><b>Planning</b><span>Learned times, drag to pin, travel and sick mode, calendar write-back</span></div>
+      <div><b>Studies</b><span>Subjects and syllabus, exam countdown, Pomodoro stats, spaced review, teach it back</span></div>
+      <div><b>Body and life</b><span>Workout templates, water and sleep, bills, chore rotation, goals</span></div>
+      <div><b>Reward</b><span>A garden that grows with your streak and level</span></div>
+    </div>
+    <p class="note"><b>Two of these have honest limits.</b> <b>Stakes:</b> a friend message can only be sent while the app is able to run, so the check happens when you tap sleep, when you next open the app, and in a background task at 22:30. <b>Focus lock:</b> Expo has no built-in app blocker. It needs a small custom Android module and two special permissions, so it works in your own APK and not on the Play Store. Both are marked in their phases.</p>
+    <div class="code"><div class="bar"><span>Paste into CLAUDE.md at Phase 9</span><button class="copy" data-copy="addendum">Copy</button></div><pre id="addendum-pre"></pre></div>
+  </section>
+
+  <section class="sec" id="phases">
+    <h2>The build, phase by phase</h2>
+    <p>Phases 0 to 8 build the core app. Phases 9 to 16 add your extras. Phases 17 and 18 build the proof wall website and can be done right after Phase 4. Rough effort is for someone using Claude Code for the typing and checking each result on a real phone.</p>
+    <div id="phaseList" style="display:grid;gap:22px"></div>
+  </section>
+
+  <section class="sec" id="risks">
+    <h2>Things that will bite you</h2>
+    <ul>
+      <li><b>The pinned notification is best-effort.</b> Android 14 and later can let users dismiss "ongoing" notifications from ordinary apps, and some phone makers kill background apps. Phase 4 adds a repeating reminder and re-posts on app open. Test on your own phone before trusting it.</li>
+      <li><b>Battery optimization.</b> Set the app to "Unrestricted" in Android battery settings, or reminders arrive late.</li>
+      <li><b>Notification permission.</b> Android 13+ asks at runtime, and only after a notification channel exists. Create the channel first.</li>
+      <li><b>Calendar and camera permissions</b> are runtime prompts. Handle "denied" with a plain message, not a crash.</li>
+      <li><b>Your API key lives on the phone.</b> Fine for you alone. Anyone with the phone and some effort can read it. Never put it in the repo.</li>
+      <li><b>Dates.</b> Store times as minutes since midnight plus a local date string. Do not use UTC for "today".</li>
+      <li><b>Proof photos are private data.</b> They stay in the app's own folder. Export is manual.</li>
+      <li><b>Focus lock can lock you out of your own phone.</b> It must always have a hold-to-exit and must never block calls or emergency contacts. Test it with the phone in your hand, not at 2 a.m.</li>
+      <li><b>Stake messages go to another person.</b> Show the exact text first, allow turning it off, and only ever send for tasks you explicitly staked.</li>
+      <li><b>Voice notes are private data</b> and need the microphone permission. Keep them on the device.</li>
+      <li><b>Public means public.</b> Anyone can see, copy and screenshot what you post, and search engines will index it. Photos of your room show your home. The posting delay stops the page showing where you are right now. Do not photograph other people without asking, and never post documents, message screens or anything with an address.</li>
+    </ul>
+  </section>
+
+  <section class="sec" id="later">
+    <h2>Still on the shelf</h2>
+    <p>Not in your chosen list, but worth a look once everything above is stable.</p>
+    <ul>
+      <li>Home-screen widget showing the next task and a Start button, and a share-sheet "Add to Nudge".</li>
+      <li>Energy check-in after waking, so hard tasks land in your best hours.</li>
+      <li>Weekly report: planned vs actual hours, most-skipped time slot, which tag you avoid.</li>
+      <li>AI check of proof photos: Claude asks three questions about your notes and you answer.</li>
+      <li>Health Connect steps as automatic proof for walking tasks.</li>
+      <li>A sync backend (Supabase) if you ever want a second device.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(()=>{
+const $=(s,r=document)=>r.querySelector(s);
+const BRIEF=String.raw`# Nudge: project brief
+
+Personal Android app. Expo SDK 58, TypeScript, Expo Router (routes in src/app). One user, no backend in v1.
+Purpose: beat procrastination. Plan my day around when I really wake, leave and get home. Make me start. Keep a notification pinned until I upload photo proof. Reward me calmly. Be soothing, never loud.
+
+## Rules for working in this repo
+- Before using any Expo or React Native API, read the versioned SDK 58 docs (see AGENTS.md). Do not rely on memory.
+- Install packages with: npx expo install <pkg>. Never npm add for Expo packages.
+- Never edit android/ or ios/ by hand. Use app.json and config plugins.
+- Run npx tsc --noEmit and npx expo lint before saying a task is done.
+- Keep non-route code out of src/app. Put the planner in src/planner and make it pure (no React Native imports).
+- Visual and behavior reference: docs/prototype.html. Match it. Its plan() function is a working planner.
+
+## Core loop
+Add task -> planner places it in free windows -> I start (Just 5 minutes, or full focus) -> notification stays pinned until I upload a proof photo -> soft reward -> day re-plans.
+
+## Day anchors (no fixed hours)
+I tap: wake, leave (for office), home, sleep.
+Weekday phase: dawn after wake, day after leave, dusk after home, night after sleep or before wake.
+Weekend (Sat, Sun) has no office. Phase follows the clock: before 11:00 dawn, before 17:00 day, before 20:30 dusk, else night.
+Defaults before I tap, in minutes since midnight: wake 450, leave 615, office start 660, home 1170, sleep 1410.
+An anchor time is never earlier than the previous anchor or the current time.
+
+## Planner: src/planner/plan.ts
+plan({ tasks, anchors, now, dow, busy }) returns { blocks, later, win }.
+Windows, weekday: morning = [wake+20, leave-20]. evening = [home+20, sleep-30]. Missing anchors use defaults.
+Windows, weekend: [wake+20, 780], [840, 1110], [1170, sleep-30].
+Every window starts no earlier than now rounded up to 5 minutes. Drop windows shorter than 10 minutes.
+Evening is "predicted" (shown with ~) until home is tapped.
+Remove busy calendar intervals from windows (Phase 5).
+Pool: not done, not paused, and days is empty or includes today.
+Order: must desc, prio desc, mins desc.
+Placement: prefer the task's own window (morning or evening). Tasks of 40 minutes or more go to the largest remaining window. Otherwise the earliest window that fits. 10-minute gap after each task. No fit goes to later (tomorrow).
+Free block: leftover time of 25 minutes or more in a window.
+Office block (weekday): from leave (or 660) to home (or 1170).
+At most 3 must-do tasks. A task rolled over 3 times must be broken down or dropped.
+Routines (laundry Sat, clean room Sat/Sun, workout, weekly review Sun) are tasks with days set. Missed ones skip, never pile up.
+
+## Focus and proof
+One active task at a time. Starting another shows: finish the current one first.
+Just 5 minutes starts a 5 minute run. At the end offer +10 minutes or Add proof.
+While a task is active, a pinned notification (Android sticky) shows title, current step and an Add proof button. It clears only after a proof photo is saved.
+Big task: show only the current step. Steps are 10-25 minutes, first step 2 minutes or less.
+
+## Free-time check-in
+When a free block of 20+ minutes starts and nothing is active, send a notification: "You're free. Doing what?" Actions: start next task, resting 15, scrolling (honest), something else. Log the answer.
+
+## Rewards
+XP per task = round(mins x 1.2), plus 20 if must-do. 40% chance of a bonus drop of 15 to 34 XP.
+Level = floor(xp / 500) + 1. Streak +1 on the first completed task of a day.
+Weekly reward set by me, default "Movie night" at 1500 XP.
+
+## Data model (src/types.ts)
+Task, Routine fields live on Task. DayState holds anchors and done ids. Proof holds the photo uri.
+
+## Design tokens
+Phases: dawn, day, dusk, night. The sky is 4 gradient layers cross-fading over 2.2s. Accent changes per phase.
+dawn: sky #FDF0E4 > #F9D7C4 > #F1BDB3, ink #3A2A3A, accent #CB6747
+day: sky #EDF6FC > #D5E8F5 > #BEDAEE, ink #1F3A57, accent #3B76AC
+dusk: sky #F8DFCF > #EBBBB8 > #9BA7C6, ink #43303F, accent #BE5A74
+night: sky #26356A > #1B2850 > #121B38, ink #F2EEE8, accent #F0C878 (button text #1B2340)
+Tag colors: fit #D9734F, study #4C86B8, life #4E9F82.
+Easing cubic-bezier(.22, .8, .3, 1). No overshoot or shake. Respect reduce-motion.
+Fonts: Bricolage Grotesque (headings), Figtree (text), DM Mono (times).`;
+
+const TYPES=String.raw`export type Tag = 'fit' | 'study' | 'life';
+export type AnchorKey = 'wake' | 'leave' | 'home' | 'sleep';
+
+export interface Task {
+  id: string;
+  title: string;
+  mins: number;               // planned length
+  tag: Tag;
+  must: boolean;              // max 3 per day
+  prio: 1 | 2 | 3;
+  pref: 'morning' | 'evening' | 'any';
+  days?: number[];            // 0=Sun..6=Sat. Empty = any day
+  routine?: boolean;
+  steps?: string[];           // broken-down steps
+  done?: boolean;
+  off?: boolean;              // routine paused
+  rolled: number;             // times moved to a later day
+}
+
+export type Anchors = Partial<Record<AnchorKey, number>>; // minutes since midnight
+
+export interface Busy { s: number; e: number }            // calendar event, minutes
+
+export type Block =
+  | { kind: 'task'; t: Task; s: number; e: number; w: string; pred: boolean }
+  | { kind: 'free'; s: number; e: number; w: string; pred: boolean }
+  | { kind: 'office'; s: number; e: number; done: boolean; active: boolean; pred: boolean }
+  | { kind: 'now'; s: number };
+
+export interface PlanInput { tasks: Task[]; anchors: Anchors; now: number; dow: number; busy: Busy[] }
+export interface PlanOutput { blocks: Block[]; later: Task[]; win: Record<string, string> }`;
+
+const ADDENDUM=String.raw`# Nudge v1.1 add-ons: brief addendum
+Append under the main brief. Same working rules. docs/prototype.html shows every feature below working.
+
+## Avoidance toolkit
+Why am I avoiding this: shown when a task has been skipped 2 times, or when I tap Avoiding? on a task. Four choices: Boring, Scary, Unclear, Tired.
+- Boring: start a 10 minute run.
+- Scary: start a 2 minute run.
+- Unclear: run Break it down, then open the task.
+- Tired: move to tomorrow, no streak penalty.
+Save each answer in task.reasons. Ask once per task (whyAsked).
+If-then plan: task.trigger = { when: 'wake' | 'leave' | 'home' }. When I tap that anchor, send a notification "You said: when I'm home, start X" with Later and Start actions. One trigger per task.
+Snooze cost: a snooze moves the task 15 minutes later (pinned start). Two snoozes per task per day. The third attempt shows: start a 2 minute run, or move to tomorrow and give a reason (the Why choices). Count snoozes per day.
+
+## Stakes
+Self stake: task.stake = true on a must-do. If it is still open when I tap sleep, I lose 50 XP per staked task and the garden rests one day. Nothing is deleted. Finishing it shows a Stake kept pill.
+Friend stake (optional): a Telegram bot sends a short message to one chat when a staked task is missed. Bot token and chat id are stored in expo-secure-store. Always show me the exact message before sending, and let me turn it off. Check when I tap sleep, when the app opens after midnight, and in a background task at 22:30. Never message about a task that is not staked.
+
+## Focus lock (Android only, my own APK)
+While a task runs with Focus lock on, opening a distracting app (a list I choose) shows a full-screen lock: task name, time left, Back to my task, and Hold 5 seconds to unlock. The exit is logged. Never block calls, emergency contacts or Nudge itself.
+Needs a custom native module (Expo Modules API, Kotlin): usage access permission to detect the foreground app, display-over-other-apps permission for the overlay, and a foreground service while a task is active.
+
+## Planning
+Learned times: after 10 or more weekday anchor taps, take the median leave and home of the last 14 and offer them as defaults. A switch in the You tab turns them on. Planner defaults then use them.
+Pin by drag: dragging a task onto a time sets task.pinnedStart. The planner treats it as a fixed block (10 minute gap each side) and plans others around it. If there is no room, snap back with a message. Tapping the Pinned chip unpins.
+Rest mode: Normal, Travel, Sick. In Travel or Sick, treat the day like a free day: routines and chores are not planned, nothing rolls over, streak is frozen (kept, not growing).
+Calendar write-back: create a calendar named Nudge. Write each planned block as an event. Update or delete on every re-plan. Keep a map from task id to event id. Never touch other calendars.
+Calendar read: busy events become busy intervals removed from windows (10 minute gap each side).
+
+## Studies
+Subject: { id, name }. Chapter: { id, subjectId, title, status: todo | learning | revised }. Exam: { subjectId, date }.
+Exam countdown on the Study tab. Back-plan: unfinished chapters spread across days until exam minus 2 days. The last 2 days are revision. Text like: 3 chapters left, 1 every 9 days.
+Pomodoro: 25 on, 5 off option for study tasks. Save sessions (subject, minutes). Study tab shows minutes per subject this week.
+Spaced review: when a study chapter task is finished, create 10 minute review tasks at +1, +3 and +7 days. Finishing a review does not create more.
+Teach it back: proof option for study tasks. Record 20 to 60 seconds of voice. Stored on the device. Counts as proof.
+
+## Fitness
+Workout templates: Push, Pull, Leg day, Home workout. Each is a list of exercises with sets. Use today adds a workout task whose steps are the exercises.
+Water: goal 8 glasses of 250 ml. A card on Today adds one per tap.
+Sleep wind-down: notification 30 minutes before my sleep default (23:00): screens off, look at tomorrow.
+
+## Life
+Bills: { title, dueDay, repeat }. Reminders 3 days before and on the day. Marking paid needs a proof screenshot and gives 15 XP.
+Chore rotation: a list of chores. One chore per weekday (Mon to Fri), 15 minutes, lowest priority. Rotate shifts the order by one.
+Goals: month goal, then weekly steps, then daily tasks. Show month progress, this week's step, and the linked task for today.
+
+## Garden
+Streak decides the stage: 0-2 days seeds, 3-6 sprouts, 7-13 growing, 14-29 in bloom, 30+ orchard. Level decides how many plants are unlocked (up to 5). Missing a day never kills it. It rests. Drawn with react-native-svg and Reanimated, slow idle sway, plants grow in when the stage changes.
+
+## Proof wall (Supabase + Next.js)
+Every proof is private by default. The Show on my proof wall switch on the proof sheet posts it (on by default for Fit and Study, off for Life). Bills, voice notes and private proofs can never be posted.
+Before upload: resize to 1080 px on the long side and re-encode as JPEG with expo-image-manipulator so location data is removed.
+The wall is fully public and indexable. To keep it safe, a proof only appears after a posting delay I set in the app (default 30 minutes, range 0 to 240), so the page never shows where I am right now. The site never shows anchor times (wake, leave, home, sleep), locations or task details I marked private.
+Supabase: table proofs (id, user_id, task_title, tag, caption, minutes, xp, image_path, is_public, publish_at, created_at). Row level security: only the owner can read or write all rows. A view public_proofs exposes only rows where is_public is true and publish_at is in the past, with title, tag, caption, minutes, xp, image_path and created_at. A view public_stats exposes only aggregates (streak, level, week count, daily counts). Storage: private bucket proofs, public bucket wall (only public proofs are copied there). Removing a proof in the app deletes the row and the file.
+Website (web/, Next.js App Router on Vercel): server components read the public views with the anon key and revalidate every 60 seconds. Sections: live status, streak and level, garden, 12 week heatmap, filterable proof wall with lightbox, how proofs get here. Public and indexable: title, description, sitemap, Open Graph image. Match docs/wall.html.`;
+
+const PHASES=[
+{id:'p0',n:'0',t:'Set up the project',time:'45 min',goal:'The app runs on your Android phone from a development build, and Claude Code knows the rules.',
+ steps:[
+  'Move the <code>nudge</code> folder out of the temporary session folder to a permanent place, for example <code>~/code/nudge</code>. The temporary folder is deleted with the session.',
+  'Open it in Claude Code. Append the Project brief above to the end of <code>CLAUDE.md</code>.',
+  'Create <code>docs/</code> and copy <code>prototype.html</code> into it.',
+  'Paste the prompt below.',
+  'Make a free Expo account. Run <code>npx eas-cli@latest login</code>, then the build command the prompt prints. Install the APK on your phone from the link, then run <code>npx expo start --dev-client</code> and open the app.'],
+ prompt:String.raw`Read CLAUDE.md and AGENTS.md. We are building the Nudge app described in the project brief.
+
+Set the project up for Expo SDK 58:
+1. Convert the blank template to Expo Router. Routes in src/app with a bottom tab layout: index (Today), routines, rewards. Each tab is a placeholder screen for now. Follow the SDK 58 Router docs for the entry point and app.json scheme.
+2. Install with npx expo install: expo-dev-client expo-notifications expo-image-picker expo-calendar expo-secure-store expo-haptics expo-linear-gradient expo-file-system react-native-reanimated react-native-svg @react-native-async-storage/async-storage. Install zustand with npm. Install vitest as a dev dependency. Check each package's SDK 58 docs page for required config plugins and add them to app.json.
+3. Load the fonts Bricolage Grotesque, Figtree and DM Mono with the @expo-google-fonts packages. Verify the package names exist first.
+4. Create src/theme with the four phase palettes from the brief.
+5. Create eas.json with a development profile: developmentClient true, internal distribution, Android buildType apk.
+6. Run npx tsc --noEmit and npx expo lint and fix problems.
+Do not run eas build. Print the exact commands I should run to log in and build the Android dev APK.`,
+ done:['Tabs appear on your phone, switching between Today, Routines and Rewards.','Type-check and lint pass.','docs/prototype.html and the brief are in the repo.']},
+
+{id:'p1',n:'1',t:'The planner brain',time:'half a day',goal:'A tested pure function that builds the day from anchors, tasks and the clock. No screens yet.',
+ steps:['Open a fresh Claude Code session in the project.','Paste the prompt.','Read the test names it wrote. They should match the eight cases in the Planner section.'],
+ prompt:String.raw`Read CLAUDE.md. Implement the planner in src/planner (types.ts, plan.ts, plan.test.ts). No React Native imports anywhere in this folder.
+
+Port the plan() function from docs/prototype.html into TypeScript with the types in the brief. Keep the behavior identical, including predicted evening blocks, free blocks of 25+ minutes, the office block, and the "later" bucket.
+
+Write vitest tests for these cases (weekday defaults from the brief):
+1. Woke 07:42 (462), now 07:50. Morning window is 08:02 to 09:55 and a 30 minute workout is placed there.
+2. Home tapped at 17:40 (1060). Evening opens at 18:00. Tasks that were in later are placed.
+3. Woke 09:30. Morning window is under 10 minutes and dropped. The workout is placed in the evening.
+4. Leave tapped. No task is placed in the morning.
+5. Sleep tapped. Everything is in later.
+6. Saturday (dow 6). Three windows. Routines with days including 6 are placed. No office block.
+7. Overflow. Must-do tasks are placed first and the lowest priority tasks go to later.
+8. A busy interval (add a "busy" input) removes that time from the window.
+Add a test script to package.json and run it. Then run tsc and lint.`,
+ done:['npm test passes with 8 or more tests.','Moving the clock or anchors in a test changes placement exactly as in the table.']},
+
+{id:'p2',n:'2',t:'Store and main screens',time:'1 to 2 days',goal:'Today, Add task, Routines and Rewards screens working with saved data, matching the prototype layout. Basic animation only.',
+ steps:['Fresh session. Paste the prompt.','Run on your phone. Add a task, close the app, reopen it. The task must still be there.','Compare each screen with the prototype side by side.'],
+ prompt:String.raw`Read CLAUDE.md. Build the main screens to match docs/prototype.html.
+
+1. src/store: a zustand store persisted with AsyncStorage. State: tasks, anchors, done list (with proof uri and xp), xp, streak, active task, current day type. Seed the same tasks as the prototype's seedTasks().
+2. Use the real device clock for "now" in the store, but keep a way to override it for tests.
+3. Today screen: header with greeting, ring (done / total), the day rail with four anchor nodes and one big button for the next anchor, then the timeline rows from plan(). Row types: task, free, office, now. The next task is highlighted with a Start button.
+4. Add task sheet: title, length chips, must-do switch, Break it down button (canned steps for now), Add to my day.
+5. Routines tab: expandable cards with steps, weekday chips, pause switch that changes the plan.
+6. Rewards tab: level ring, streak week dots, Fit / Study / Life rings, reward bar, proof wall.
+Use theme tokens from src/theme. Do not add animation yet beyond simple fades. Run tsc and lint.`,
+ done:['Tasks and anchors survive closing the app.','Adding a task shows where it was placed.','Pausing a routine removes it from the plan.']},
+
+{id:'p3',n:'3',t:'The living sky and motion',time:'1 to 2 days',goal:'Tapping an anchor changes the sky slowly and the tasks glide to their new places. This is the part that makes it feel good.',
+ steps:['Fresh session. Paste the prompt.','Tap "I woke up", "Leaving for office", "I\'m home" in a row and watch the sky and rows.','Turn on reduce-motion in Android settings and check that the app stays calm and usable.'],
+ prompt:String.raw`Read CLAUDE.md and docs/prototype.html. Add the motion.
+
+1. A Sky component behind every screen: four expo-linear-gradient layers that cross-fade over 2.2 seconds. Phase comes from the plan state. Add a sun/moon orb that moves to a different position per phase over 2.6s (moon is a crescent at night), faint stars at night, and two slow-drifting blurred clouds.
+2. Animate the theme colors (ink, card, accent) between phases over 1.8s using reanimated interpolateColor, so text and buttons tint with the sky.
+3. Timeline rows: when the plan changes, existing rows glide to their new position, new rows fade in from below with a small stagger, removed rows fade out. Use the Reanimated layout transition and entering and exiting APIs from the SDK 58 docs. Duration about 0.9s.
+4. Day rail: the progress line fills with a timing animation. The next anchor node has a slow soft pulse (3.4s).
+5. Easing everywhere: Easing.bezier(0.22, 0.8, 0.3, 1). No overshoot, no shake. If reduce-motion is on, skip the sky drift and use instant transitions for rows.
+6. A demo mode (dev only) with a clock slider and day-type switch like the prototype, so I can test early-home and late-wake without waiting.
+Run tsc and lint. Describe what I should check on the phone.`,
+ done:['The sky fades between four looks without flicker.','Rows move smoothly when you tap an anchor.','With reduce-motion on, nothing drifts or bounces.']},
+
+{id:'p4',n:'4',t:'Focus, pinned notification, proof',time:'2 days',goal:'Start a task, get a notification you cannot swipe away, and finish only by uploading a photo.',
+ steps:['Fresh session. Paste the prompt.','Rebuild the dev APK if the prompt added native config: <code>npx eas-cli@latest build --profile development --platform android</code>.','Test on your phone: start a task, try to swipe the notification, background the app, finish with a photo.'],
+ prompt:String.raw`Read CLAUDE.md and the SDK 58 docs for expo-notifications (https://docs.expo.dev/versions/v58.0.0/sdk/notifications.md) and expo-image-picker.
+
+Build the focus flow.
+1. Focus sheet from the Today screen: task title, ring timer that breathes slowly while running, the current step only (with Step done, next), buttons Just 5 minutes and Start full focus. After the time ends show Add proof and +10 minutes.
+2. Only one active task at a time. Trying to open another shows a gentle message and nudges the pinned notification.
+3. When a run starts, create an Android notification channel first, register a notification category with an Add proof action (opensAppToForeground), then present a notification with sticky: true (documented as Android's ongoing flag), the category, and data with the task id. Update its body with the current step. Dismiss it only after proof is saved.
+4. Android 14 and newer may let the user swipe ongoing notifications. Mitigate: schedule a repeating reminder every 3 minutes while a task is active and unproven, and re-present the pinned notification whenever the app comes to the foreground. Verify the exact API signatures in the docs; do not guess.
+5. Proof: launchCameraAsync, request camera permission with a clear message, copy the photo into the app document directory with expo-file-system, store the uri. A task becomes done only after a proof uri exists. Clear the notification and the reminders.
+6. Handle notification taps and the Add proof action by opening the proof sheet.
+Run tsc and lint. List what I must test on a real phone.`,
+ done:['The notification shows with an Add proof button.','Swiping it either fails or it comes back within a few minutes.','You cannot complete a task without a photo.','Completing a task clears the notification.']},
+
+{id:'p5',n:'5',t:'Calendar, check-ins, routines, rollover',time:'2 days',goal:'The plan respects your meetings, asks what you are doing when you are free, and handles missed tasks without guilt piles.',
+ steps:['Fresh session. Paste the prompt.','Add a calendar event for tonight and watch the plan flow around it.','Leave a free block untouched and wait for the check-in.'],
+ prompt:String.raw`Read CLAUDE.md and the SDK 58 docs for expo-calendar and expo-notifications.
+
+1. Calendar: request calendar permission with a plain explanation. Read today's events with getEventsAsync from all calendars and convert them to busy intervals in minutes. Pass them to plan() and subtract them from windows. Add planner tests for busy intervals. Handle denied permission by planning without them and showing a small note.
+2. Free-time check-in: when a free block of 20+ minutes starts and no task is active, schedule a local notification "You're free. Doing what?" with actions: start next task, resting 15 minutes, scrolling, something else. Save each answer to an activity log (time, answer). Add a screen listing today's log. Do not send check-ins during office hours or after the sleep anchor.
+3. Routines: make tasks with days appear automatically on the right days. Weekend plans must show laundry and cleaning first.
+4. Rollover: when I tap sleep (or at local midnight), increase rolled on every unfinished normal task. Routines that were missed are skipped, not rolled. When rolled reaches 3, the next time I open the task offer: break it down or drop it.
+Run tsc, lint and the tests.`,
+ done:['A calendar event moves your tasks.','You get a check-in when you are free.','A task rolled 3 times asks you to split or drop it.']},
+
+{id:'p6',n:'6',t:'Rewards that feel good',time:'1 day',goal:'Finishing a task gives a calm, satisfying moment, and streaks and levels make you want the next one.',
+ steps:['Fresh session. Paste the prompt.','Finish three tasks in a row. The third should feel as good as the first.'],
+ prompt:String.raw`Read CLAUDE.md and docs/prototype.html (the reward overlay).
+
+Build the reward moment shown after proof is saved:
+1. A card rises in. The check mark draws itself, XP counts up over about 1.1s, then pills pop in softly: streak (first task of the day), bonus drop (40% chance, 15 to 34 XP), level up when crossing a multiple of 500 XP. A thin level bar fills.
+2. Soft glow motes drift up and fade over about 4 seconds. No hard confetti. Use Reanimated, around 60 particles in pastel colors.
+3. Gentle haptic: expo-haptics notificationAsync success, once.
+4. Praise line depends on the tag (fit, study, life). Button: Next up with the next task name, or Back to my day.
+5. After closing, the day re-plans and rows glide to new positions. The ring on Today pops once.
+6. Rewards tab: weekly reward name and target XP editable by me, proof wall of all photos, and an XP history.
+Respect reduce-motion by skipping motes. Run tsc and lint.`,
+ done:['Reward overlay plays once per completion.','Streak only increases on the first task of the day.','Level up shows at multiples of 500 XP.']},
+
+{id:'p7',n:'7',t:'Break big tasks down with Claude',time:'1 day',goal:'Type a big task, tap Break it down, get 4 to 6 small steps. The first step takes two minutes.',
+ steps:['Get an API key from the Anthropic console.','Fresh session. Paste the prompt.','Paste your key into the new Settings screen on the phone. Never commit it.'],
+ prompt:String.raw`Read CLAUDE.md. Use the claude-api skill or the current Anthropic API docs to get the exact request format.
+
+1. Settings screen with a field to paste an Anthropic API key. Store it only in expo-secure-store. Never log it and never put it in app.json or the repo. If Phase 17 is already done, skip this and call a Supabase Edge Function named breakdown instead, so the key stays on the server.
+2. src/ai/breakdown.ts: breakdown(title, mins) calls the Messages API with fetch, using a small fast model (claude-haiku-5-5 unless the docs say otherwise). Ask for JSON only: {"steps": [string]} with 4 to 6 steps, each 10 to 25 minutes, the first no more than 2 minutes, imperative voice, under 60 characters each. Parse defensively. On any failure fall back to the canned steps already in the app and tell me.
+3. In the Add task sheet: show a shimmer while loading, then steps appearing one by one. Highlight the Break it down button when the task is 120+ minutes or the title is long. Tasks with steps show only the current step in focus.
+4. When a task has been rolled 3 times, offer Break it down again.
+Run tsc and lint. Tell me exactly where the key is stored.`,
+ done:['A real breakdown appears for a big task.','The app works (with canned steps) when offline or with no key.','The key is not in the repo.']},
+
+{id:'p8',n:'8',t:'Make it stick',time:'half a day',goal:'A real installed app you use every day, not a dev build.',
+ steps:['Fresh session. Paste the prompt.','Run the release build command it prints and install the APK.','In Android settings: set battery to Unrestricted for Nudge and allow notifications.','Use it for one week. Then read the "After a week" list at the bottom.'],
+ prompt:String.raw`Read CLAUDE.md. Prepare Nudge for daily use on my Android phone.
+1. Add a preview EAS build profile that produces an installable release APK. Set the app name, icon and adaptive icon colors to match the dawn palette. Print the build command.
+2. Add a Settings screen section: notification permission status, a link that opens the system battery settings for the app, and a note about setting battery to Unrestricted.
+3. Add Export data: write all tasks, anchors, activity log and XP to a JSON file and share it with the system share sheet. Proof photos are not included.
+4. Add an Anchor history screen listing the last 14 days of wake, leave, home and sleep times.
+5. Run tsc, lint and the tests. Summarize anything I must configure by hand.`,
+ done:['The release APK installs and works with no dev server.','Notifications arrive with the screen off.','You can export your data.']},
+
+{id:'p9',n:'9',t:'Avoidance toolkit',time:'1 to 2 days',grp:['After a week of daily use','Your add-ons','Phases 9 to 16 are the extras you picked. Add the v1.1 brief above to CLAUDE.md first. Each phase matches what the demo app already does.'],
+ goal:'When you dodge a task, the app helps you start instead of nagging: it asks why, runs your if-then plans, and makes snoozing cost something.',
+ steps:['Paste the add-on brief into CLAUDE.md.','Fresh session. Paste the prompt.','Open a task you have skipped twice and check the why prompt. Tap I\'m home and check the if-then notification.'],
+ prompt:String.raw`Read CLAUDE.md (including the v1.1 add-on brief) and docs/prototype.html. Build the Avoidance toolkit. Verify notification APIs against the SDK 58 docs.
+
+1. Why am I avoiding this: a sheet with Boring, Scary, Unclear and Tired. Show it automatically the first time I open a task with rolled >= 2, and from an Avoiding? button on the focus sheet. Actions per the brief. Save task.reasons and whyAsked.
+2. If-then plans: add a trigger picker to the Add task sheet (None, When I wake, When I leave, When I'm home). When that anchor is tapped, show a local notification with Later and Start actions. Show a small "When I'm home" chip on the task row.
+3. Snooze cost: a Snooze button on the focus sheet showing snoozes left (2 per task per day). Snoozing pins the task 15 minutes later. On the third attempt show the sheet from the brief (2 minute run, or move to tomorrow with a reason).
+4. Add planner support for a tomorrow flag (task goes to later) and keep the planner pure. Add vitest cases for pinned and tomorrow tasks.
+5. Add the "Skipped 2x" chip on rows.
+Run tsc, lint and the tests.`,
+ done:['A twice-skipped task asks why before it opens.','Tapping I\'m home triggers your if-then notification.','The third snooze is blocked with a clear choice.']},
+
+{id:'p10',n:'10',t:'Stakes',time:'1 day',goal:'A must-do can cost you something if you skip it. Start with a self stake. Add the friend message only if you want it.',
+ steps:['Decide: self stake only, or also a friend message.','For the friend message: in Telegram, talk to the BotFather bot, create a bot and copy its token. Ask your friend to open the bot and press Start, then find their chat id. The Telegram Bot API method getUpdates shows it, and Claude Code will read those docs.','Fresh session. Paste the prompt.','Stake a task, then tap sleep with it unfinished.'],
+ prompt:String.raw`Read CLAUDE.md (Stakes section) and docs/prototype.html.
+
+1. Self stake: a Stake it switch on the Add task sheet and the focus sheet, and a Staked chip on the row. At the sleep anchor (and when the app opens after local midnight), for each staked task that is not done: subtract 50 XP (never below 0), mark the garden as resting for one day, and show the Stake missed sheet. Finishing a staked task shows a Stake kept pill in the reward.
+2. Friend stake (behind a Settings switch, off by default): a Telegram bot message. Read the Telegram Bot API docs for sendMessage and getUpdates. If Phase 17 is done, keep the bot token in an Edge Function secret and send through that function. Otherwise store bot token and chat id in expo-secure-store. Provide a Settings screen to paste both and a Send test message button. The Stake missed sheet shows the exact message and two buttons: Send and Don't send. Never send without that tap.
+3. Evaluate stakes at sleep tap, at app open after midnight, and in a background task at about 22:30 using the SDK 58 expo-background-task docs. The background task should only show a local notification reminding me what is still staked. It must not send the friend message by itself.
+4. Add unit tests for the stake evaluation function.
+Run tsc, lint and the tests. Tell me exactly what is stored and where.`,
+ done:['Missing a staked task costs 50 XP and shows the sheet.','Nothing is sent to a friend without your tap.','Finishing it shows Stake kept.']},
+
+{id:'p11',n:'11',t:'Focus lock',time:'2 to 4 days (the hardest)',goal:'While a task runs, opening a distracting app shows a calm lock screen. You can always leave by holding a button.',
+ steps:['Know the limits: this needs a custom Android module and two special permissions. It works in your own APK, not on the Play Store.','Fresh session. Paste the prompt.','Rebuild the dev APK. Grant "Usage access" and "Display over other apps" when asked.','Test with your finger on the exit button first.'],
+ prompt:String.raw`Read CLAUDE.md (Focus lock section) and the Expo Modules API docs (https://docs.expo.dev/modules/overview.md). Expo has no built-in app blocker, so build a local Expo module for Android.
+
+1. Create modules/focus-lock with Kotlin code and a config plugin that adds the needed permissions and the foreground service to the manifest. Check the current Android docs for UsageStatsManager (usage access), the draw-over-other-apps permission, and foreground service types. Do not guess API names.
+2. Module API (TypeScript): hasPermissions(), openPermissionSettings(), start(blockedPackages, taskTitle, endsAtMs), stop(), and an event onUnlockedByUser.
+3. While started, a foreground service checks the foreground app about once per second. If it is in the blocked list, show a full-screen overlay with the task title, the time left, a Back to my task button, and a Hold 5 seconds to unlock control. Holding for 5 seconds stops the lock and logs the exit.
+4. Safety: never block the phone dialer, messages from contacts marked as emergency, system settings, or Nudge. The lock must end automatically when the task ends or proof is saved. If the service crashes, the phone must stay usable.
+5. In the focus sheet, the Focus lock switch asks for permissions first, then starts the module when a run starts and stops it when proof is saved.
+6. A Settings screen to choose which installed apps to block (list installed apps with their names).
+Run tsc and lint. List every permission added and how to revoke each. Say plainly what you could not test without a device.`,
+ done:['Opening a blocked app during a run shows the lock screen.','Holding 5 seconds always unlocks, and the exit is logged.','Calls and settings are never blocked.','Lock turns off by itself when the task ends.']},
+
+{id:'p12',n:'12',t:'Smarter planning',time:'2 days',goal:'The plan learns your real times, lets you drag tasks where you want them, pauses when you travel or are sick, and shows up in Google Calendar.',
+ steps:['Fresh session. Paste the prompt.','Drag a task onto a later slot and watch the others re-flow.','Switch to Travel mode and confirm the streak stays and routines pause.','Open Google Calendar and look for the Nudge calendar.'],
+ prompt:String.raw`Read CLAUDE.md (Planning section), docs/prototype.html and the SDK 58 expo-calendar docs (createCalendarAsync, createEventAsync, updateEventAsync, deleteEventAsync).
+
+1. Learned times: store every leave and home anchor tap with its date. With 10 or more weekday samples, compute the median of the last 14 and show it in the You tab with a Use my real times switch. When on, the planner defaults for leave and home use them. Unit test the median function.
+2. Pin by drag: make task rows draggable with a grip handle using Reanimated and Gesture Handler (check the SDK 58 docs for the right gesture API). On drop, set task.pinnedStart to the target time. The planner already supports pinned tasks: add it in src/planner with tests (fixed block, 10 minute gap each side, snap back with a message if there is no room). Add an Unpin chip.
+3. Rest mode: a Normal, Travel, Sick control on the Routines tab. In Travel or Sick, plan like a free day, skip routines and chores, do not increase rolled counts, and freeze the streak (kept, not growing, shown with a snowflake).
+4. Calendar write-back: a Plan to Calendar switch on Today. Create a calendar named Nudge once, write each planned block as an event, and update or delete events on every re-plan using a stored map of task id to event id. Never edit other calendars. Handle denied permission.
+Run tsc, lint and the tests.`,
+ done:['Dragging a task pins it and others re-flow.','Travel mode keeps your streak.','Blocks appear in a Nudge calendar and move when the plan changes.']},
+
+{id:'p13',n:'13',t:'Study system',time:'2 to 3 days',goal:'Subjects, chapters, exams, focus minutes, spaced reviews and a voice-note proof, all in a Study tab.',
+ steps:['Fresh session. Paste the prompt.','Add one subject and two chapters. Set an exam date.','Finish a chapter task and check that reviews appear for +1, +3, +7 days.','Record a 30 second teach-it-back note.'],
+ prompt:String.raw`Read CLAUDE.md (Studies section), docs/prototype.html (Study tab) and the SDK 58 docs for expo-audio (useAudioRecorder, recording permissions).
+
+1. Data and a Study tab: subjects, chapters with status (todo, learning, revised), exams with dates. Tapping a chapter cycles its status. Exam cards show days left and a back-plan line (chapters left, one every N days, last 2 days are revision). Put the back-plan calculation in src/planner/study.ts with unit tests.
+2. Link study tasks to a subject and optionally a chapter. Finished focus time adds minutes to the subject. Add a Pomodoro 25 + 5 start option on study tasks. Show minutes per subject for the current week.
+3. Spaced review: finishing a chapter task creates 10 minute review tasks at +1, +3 and +7 days. Review tasks never create more reviews. Show the upcoming list on the Study tab. Unit test the date math.
+4. Teach it back: on the proof sheet for study tasks, a Teach it back option records 20 to 60 seconds of audio with expo-audio, saved in the app document directory. It counts as proof. Request microphone permission with a plain explanation. Show a live level meter and timer while recording.
+Run tsc, lint and the tests.`,
+ done:['Exam cards show days left and a back-plan.','Reviews appear after a chapter task.','A voice note can finish a study task.']},
+
+{id:'p14',n:'14',t:'Fitness and sleep',time:'1 day',goal:'Workout templates, a water tracker and a gentle bedtime reminder.',
+ steps:['Fresh session. Paste the prompt.','Use a template today and open its steps in focus mode.','Tap the water card and check the goal message at 8 glasses.'],
+ prompt:String.raw`Read CLAUDE.md (Fitness section) and docs/prototype.html.
+
+1. Workout templates: Push day, Pull day, Leg day, Home workout, each a list of exercises with sets. A Use today button on the Routines tab adds a workout task whose steps are the exercises. Keep templates in a data file so I can edit them.
+2. Water: a card on Today showing glasses out of 8 (250 ml each) with a thin progress bar. Add a +250 ml action button to a daily reminder notification at 11:00, 15:00 and 19:00 (skip a reminder if the goal is already met). Reset daily.
+3. Sleep wind-down: schedule a local notification 30 minutes before my sleep default each night with the text "Screens off in 30 minutes. Quick look at tomorrow, then rest." and a Show tomorrow action that opens a list of what rolls to tomorrow. Cancel it if I already tapped sleep.
+Run tsc and lint. Check scheduling APIs against the SDK 58 notifications docs.`,
+ done:['A template becomes a task with steps.','Water count resets each day.','The wind-down notification arrives 30 minutes before bedtime.']},
+
+{id:'p15',n:'15',t:'Life admin: bills, chores, goals',time:'1 to 2 days',goal:'Recurring bills with reminders, a chore that rotates through the week, and goals that connect months to today.',
+ steps:['Fresh session. Paste the prompt.','Add a bill due in 3 days and check for its reminder.','Rotate chores and see today\'s chore appear in the plan.','Create a month goal and link a weekly step.'],
+ prompt:String.raw`Read CLAUDE.md (Life section) and docs/prototype.html.
+
+1. Bills: title, due day of month, repeat monthly or yearly. Show them on the Routines tab with "Due 24 Nov, in 5 days". Schedule local notifications 3 days before and on the day. Marking paid opens the proof sheet (a screenshot), gives 15 XP and moves the next due date forward.
+2. Chore rotation: a list of chores (editable). One chore per weekday Monday to Friday, 15 minutes, lowest priority, tag life. A Rotate button shifts the assignment by one. Today's chore is added to the plan as a task. Show a Monday to Friday strip with today highlighted.
+3. Goals: Goal (month) has Weekly steps, and tasks can link to a step. In the You tab show each goal with month progress, this week's step progress, and today's linked task. Completing a linked task advances the step and the goal.
+4. Unit tests for next due date math and for the rotation function.
+Run tsc, lint and the tests.`,
+ done:['A bill reminder fires 3 days before.','Today\'s chore appears in the plan.','Finishing a linked task moves its goal bar.']},
+
+{id:'p16',n:'16',t:'The garden',time:'1 to 2 days',goal:'A quiet garden that grows with your streak and unlocks a new plant at each level. It never punishes you.',
+ steps:['Fresh session. Paste the prompt.','Finish your first task of the day and watch the garden change stage when a threshold passes.','Skip a day on purpose. The garden should rest, not die.'],
+ prompt:String.raw`Read CLAUDE.md (Garden section) and docs/prototype.html (gardenSVG and plantSVG).
+
+1. Build a Garden component in the You tab with react-native-svg. Five pots in a row. Level decides how many are unlocked; locked pots are faded with the level label. The streak decides the stage for every plant: 0-2 seeds, 3-6 sprouts, 7-13 growing, 14-29 in bloom, 30+ orchard. Port the drawing from the prototype and vary flower colors per pot.
+2. Animation with Reanimated: plants ease in when the stage changes (scale from 0.5 over about 1.8 seconds), and a very slow idle sway (plus or minus 1.6 degrees over 7 seconds). Respect reduce-motion.
+3. Missing a day never reduces the stage. Show "resting" text instead. In Travel or Sick mode the stage is frozen.
+4. When a task completion crosses a stage threshold add a "Garden grew" pill to the reward moment. When a level adds a plant add "New plant".
+5. Unit test the stage function and the unlocked pot count.
+Run tsc and lint.`,
+ done:['The garden changes stage at 3, 7, 14 and 30 days.','A new plant unlocks at each level up to 5.','Skipping a day never shrinks it.']},
+
+{id:'p17',n:'17',t:'Backend and proof upload',time:'1 to 2 days',grp:['Proof wall','The website where you show you are really working','Phases 17 and 18 need only Phases 0 to 4. Do them early if you want the wall live while you build. Copy wall.html into the project\'s docs folder first.'],
+ goal:'Proofs you choose to share are uploaded safely to Supabase. Private ones never leave the phone.',
+ steps:['Create a free Supabase project at supabase.com.','In the project settings copy the project URL and the anon (public) key into a <code>.env</code> file as <code>EXPO_PUBLIC_SUPABASE_URL</code> and <code>EXPO_PUBLIC_SUPABASE_ANON_KEY</code>. Never use the service role key in the app.','Fresh session. Paste the prompt. It writes a SQL file. Paste that into the Supabase SQL editor and run it.','In the Supabase dashboard turn off new sign-ups so only your account can ever log in.','Add proofs on your phone with the share switch on and off, and look at the table.'],
+ prompt:String.raw`Read CLAUDE.md (Proof wall section) and docs/wall.html. Use the Supabase docs for React Native with supabase-js and AsyncStorage session storage, Storage, and Row Level Security. Verify current API names in the docs and the SDK 58 expo-image-manipulator docs.
+
+1. Install with npx expo install: @supabase/supabase-js expo-image-manipulator expo-network. Read the project URL and anon key from EXPO_PUBLIC_ environment variables. The service role key must never appear in the app.
+2. Write supabase/migrations/001_proofs.sql: table proofs (with a publish_at column), owner-only RLS, view public_proofs that only returns rows where is_public is true and publish_at is in the past, view public_stats (aggregates only), storage bucket proofs (private) and wall (public read) with policies so only the signed in owner can write. Tell me how to run it in the Supabase SQL editor.
+3. Auth: email one-time code or magic link for my account. Tell me how to disable new sign-ups.
+4. On proof submit: save locally first, always. If Show on my proof wall is on, add the proof to a persisted upload queue: resize to 1080 px on the long side, re-encode as JPEG (this removes location data), upload to bucket wall, insert a proofs row with is_public true and publish_at set to now plus the posting delay from Settings (default 30 minutes, 0 to 240). If offline, keep it in the queue and retry when the network returns. Private proofs may back up to bucket proofs only if a Settings switch is on (default off).
+5. Rules: bills, voice notes and Life tag proofs default to not shared. Voice notes and bills can never be shared. Show an On wall chip on shared proofs and a Remove from wall action that deletes the row and the file.
+6. Settings: sign-in state, queue size, backup switch, posting delay.
+7. If the AI breakdown from Phase 7 exists, move it to a Supabase Edge Function named breakdown holding the Anthropic key as a secret, called with the user session.
+Run tsc and lint. List every secret I must set in Supabase and every value that goes in .env.`,
+ done:['A shared proof shows up in the proofs table within seconds.','A private proof never appears there.','Removing a proof from the wall deletes the row and the file.','Sign-ups are disabled.']},
+
+{id:'p18',n:'18',t:'The proof wall website',time:'1 to 2 days',goal:'A calm, good-looking public page that shows your shared proofs, streak, garden and heatmap. It matches the draft you approved.',
+ steps:['Make a free Vercel account and connect it to your Git host.','Fresh session. Paste the prompt.','Run the site locally, then share one proof from the app and watch it appear within a minute.','Deploy to Vercel and set the same two environment variables there.'],
+ prompt:String.raw`Read CLAUDE.md (Proof wall section) and docs/wall.html. That file is the design to match: a sky that follows the viewer's time of day, a hero with a live status line, slim stats, a garden, a 12 week heatmap, a filterable proof wall with a lightbox, a How a proof gets here section, and a cheer button.
+
+1. Create a Next.js app in web/ (App Router, TypeScript). Check the current Next.js docs for the right version and commands. Use one global stylesheet with the same tokens as wall.html. Fonts with next/font: Bricolage Grotesque, Figtree, DM Mono.
+2. Data: server components read the public_proofs and public_stats views with the Supabase anon key, revalidating every 60 seconds. Never query the proofs table directly from the website.
+3. Images come from the public wall bucket via next/image with the Supabase host allowed.
+4. Components: Sky (follows the viewer's local hour; the Auto, Dawn, Day, Dusk, Night preview switch stays behind a ?sky= query parameter), Hero with live status, Stats, Garden (port gardenSVG), Heatmap from daily counts, ProofWall with filters and a keyboard-friendly lightbox, HowItWorks.
+5. Cheer button: store cheers in a cheers table with an insert-only policy for anonymous visitors. Suggest the simplest safe rate limit and tell me the tradeoff. This part is optional; ship without it if it gets complicated.
+6. The site is fully public, so make it indexable: page title, description, sitemap, canonical URL and an Open Graph image showing the latest proof art. robots.txt allows crawling but disallows /api. Never render anchor times (wake, leave, home, sleep), locations, or any proof whose publish_at is in the future. Make it work well at phone width and with reduced motion.
+7. Explain how to deploy to Vercel and which environment variables to set. Do not deploy anything yourself.
+Run lint and a production build.`,
+ done:['The page loads real shared proofs.','A newly shared proof appears after your posting delay plus about a minute.','Private proofs and future-dated proofs never appear.','No anchor times or locations appear anywhere on the page.','It looks right on your phone and respects reduced motion.']}
+];
+
+/* ---- render ---- */
+$('#brief-pre').textContent=BRIEF;
+$('#types-pre').textContent=TYPES;
+$('#addendum-pre').textContent=ADDENDUM;
+const SW=[
+ ['Dawn','After you wake','#FDF0E4,#F9D7C4,#F1BDB3','#F8C99A','#CB6747',['#3A2A3A','#CB6747','#F9D7C4']],
+ ['Day','Office hours','#EDF6FC,#D5E8F5,#BEDAEE','#FBEBA8','#3B76AC',['#1F3A57','#3B76AC','#D5E8F5']],
+ ['Dusk','After you get home','#F8DFCF,#EBBBB8,#9BA7C6','#F5A98C','#BE5A74',['#43303F','#BE5A74','#EBBBB8']],
+ ['Night','After sleep tap','#26356A,#1B2850,#121B38','#F2EEE8','#F0C878',['#F2EEE8','#F0C878','#26356A']]
+];
+$('#swatches').innerHTML=SW.map(s=>`<div class="sw"><div class="sky" style="background:linear-gradient(180deg,${s[2]})"><i style="background:${s[3]}"></i></div><div class="meta"><b>${s[0]}</b><span>${s[1]}</span><div class="dots">${s[5].map(c=>`<u style="background:${c}" title="${c}"></u>`).join('')}</div><span>accent ${s[4]}</span></div></div>`).join('');
+
+const KEY='nudge-guide-v1';let done={};
+try{done=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){done={}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(done))}catch(e){}};
+const list=$('#phaseList');
+list.innerHTML=PHASES.map(p=>`${p.grp?`<div class="grp"><span class="eyebrow">${p.grp[0]}</span><h3>${p.grp[1]}</h3><p>${p.grp[2]}</p></div>`:''}<article class="card phase" id="${p.id}"><div class="ph-head"><span class="ph-n">Phase ${p.n}</span><span class="ph-t">${p.time}</span><button class="donebtn" data-done="${p.id}" aria-pressed="false">Mark done</button></div><h3>${p.t}</h3><p style="color:var(--mute)">${p.goal}</p>
+<div><div class="lab">Steps</div><ol>${p.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+<div class="code"><div class="bar"><span>Prompt for Claude Code</span><button class="copy" data-copy="${p.id}">Copy</button></div><pre id="${p.id}-pre"></pre></div>
+<div><div class="lab">Done when</div><ul>${p.done.map(s=>`<li>${s}</li>`).join('')}</ul></div></article>`).join('');
+PHASES.forEach(p=>{$('#'+p.id+'-pre').textContent=p.prompt});
+
+function sync(){
+  let n=0;
+  PHASES.forEach(p=>{const el=$('#'+p.id),on=!!done[p.id];n+=on?1:0;el.classList.toggle('isdone',on);const b=el.querySelector('.donebtn');b.setAttribute('aria-pressed',on);b.textContent=on?'Done':'Mark done'});
+  $('#pbar').style.width=(n/PHASES.length*100)+'%';
+  $('#ptxt').textContent=n+' of '+PHASES.length+' phases done';
+}
+sync();
+const TEXT={brief:BRIEF,types:TYPES,addendum:ADDENDUM};PHASES.forEach(p=>TEXT[p.id]=p.prompt);
+document.addEventListener('click',async e=>{
+  const d=e.target.closest('[data-done]');
+  if(d){const id=d.dataset.done;done[id]=!done[id];save();sync();return}
+  const c=e.target.closest('[data-copy]');
+  if(!c)return;
+  const id=c.dataset.copy,pre=$('#'+id+'-pre'),old=c.textContent;
+  try{await navigator.clipboard.writeText(TEXT[id]);c.textContent='Copied'}
+  catch(err){const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);c.textContent='Selected, press copy'}
+  setTimeout(()=>{c.textContent=old},1800);
+});
+})();
+</script>
