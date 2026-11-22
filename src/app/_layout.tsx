@@ -93,6 +93,7 @@ export default function RootLayout() {
               <Stack.Screen name="snooze" options={SHEET} />
               <Stack.Screen name="stake" options={SHEET} />
               <Stack.Screen name="edit-task" options={SHEET} />
+              <Stack.Screen name="edit-anchor" options={SHEET} />
               <Stack.Screen name="edit-study" options={SHEET} />
               <Stack.Screen name="edit-goal" options={SHEET} />
               <Stack.Screen name="edit-bill" options={SHEET} />

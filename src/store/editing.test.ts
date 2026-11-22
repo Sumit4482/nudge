@@ -108,3 +108,64 @@ describe('editing goals and bills', () => {
     expect(get().bills.some((b) => b.id === id)).toBe(false);
   });
 });
+
+describe('anchors: fix, set late, undo, and the automatic bedtime', () => {
+  const log = (date = '2026-11-20') => get().anchorLog.find((d) => d.date === date);
+
+  it('moves a tapped time and keeps the history in step', () => {
+    get().tapAnchor('wake', 400);
+    get().tapAnchor('leave', 600);
+    expect(get().setAnchor('wake', 380, 700)).toBeNull();
+    expect(get().anchors.wake).toBe(380);
+    expect(log()?.wake).toBe(380);
+  });
+
+  it('refuses a time out of order or in the future', () => {
+    get().tapAnchor('wake', 400);
+    get().tapAnchor('leave', 600);
+    expect(get().setAnchor('wake', 650, 700)).toMatch(/after 10:00/);
+    expect(get().setAnchor('leave', 390, 700)).toMatch(/before 06:40/);
+    expect(get().setAnchor('home', 800, 700)).toMatch(/not happened/);
+    expect(get().anchors).toEqual({ wake: 400, leave: 600 });
+  });
+
+  it('sets a step you forgot to tap, at a past time', () => {
+    get().tapAnchor('wake', 400);
+    get().tapAnchor('home', 1100);
+    expect(get().setAnchor('leave', 620, 1100)).toBeNull();
+    expect(get().anchors).toEqual({ wake: 400, leave: 620, home: 1100 });
+    expect(log()?.leave).toBe(620);
+  });
+
+  it('undoes a tap everywhere except Sleep', () => {
+    get().tapAnchor('wake', 400);
+    get().tapAnchor('leave', 600);
+    expect(get().clearAnchor('leave')).toBe(true);
+    expect(get().anchors).toEqual({ wake: 400 });
+    expect(log()?.leave).toBeUndefined();
+    get().tapAnchor('sleep', 1300);
+    expect(get().clearAnchor('sleep')).toBe(false);
+    expect(get().anchors.sleep).toBe(1300);
+  });
+
+  it('setting Sleep late closes the day like tapping it', () => {
+    get().tapAnchor('wake', 400);
+    expect(get().setAnchor('sleep', 1300, 1300)).toBeNull();
+    expect(get().rollDate).toBe('2026-11-20');
+    expect(get().tasks.find((t) => t.id === 'chem')?.rolled).toBe(3);
+  });
+
+  it('with no bedtime tap, the day closes at midnight and logs 00:00 as the sleep time', () => {
+    get().tapAnchor('wake', 400);
+    get().ensureToday('2026-11-21');
+    expect(log('2026-11-20')?.sleep).toBe(1440);
+    expect(get().rollDate).toBe('2026-11-20');
+    expect(get().anchors).toEqual({});
+  });
+
+  it('a real bedtime tap is not overwritten by the automatic one', () => {
+    get().tapAnchor('sleep', 1350);
+    get().ensureToday('2026-11-21');
+    expect(log('2026-11-20')?.sleep).toBe(1350);
+  });
+});

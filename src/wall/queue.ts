@@ -10,7 +10,10 @@ export async function processWallQueue(): Promise<number> {
   running = true;
   let sent = 0;
   try {
-    if (!(await currentUserId())) return 0;
+    if (!(await currentUserId())) {
+      useApp.getState().setWallNote('Upload skipped: not signed in to the wall.');
+      return 0;
+    }
     for (const item of [...useApp.getState().wallQueue]) {
       try {
         await uploadProof(item);
@@ -18,11 +21,14 @@ export async function processWallQueue(): Promise<number> {
         sent += 1;
       } catch (e) {
         console.warn('Wall upload failed, will retry', e);
+        const msg = e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : String(e);
+        useApp.getState().setWallNote(`Upload failed: ${msg}`);
         break;
       }
     }
   } finally {
     running = false;
   }
+  if (sent) useApp.getState().setWallNote(`Uploaded ${sent} proof${sent === 1 ? '' : 's'}.`);
   return sent;
 }

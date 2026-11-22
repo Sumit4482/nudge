@@ -141,9 +141,18 @@ interface AppState {
   wallDelay: number;
   /** When you last looked at your cheers, so new ones can be counted. */
   cheersSeen: string;
+  /** The last thing that happened with the proof wall, shown in Settings so a problem is never silent. */
+  wallNote: string;
 
   ensureToday: (today: string) => void;
   tapAnchor: (key: AnchorKey, now: number) => void;
+  /**
+   * Correct an anchor you already tapped, or set one you forgot to tap, at a past time of today.
+   * Returns an error message if the time does not fit, or null on success.
+   */
+  setAnchor: (key: AnchorKey, minutes: number, now: number) => string | null;
+  /** Undo a tap. Returns false for Sleep once the day has been closed, since tasks were already rolled. */
+  clearAnchor: (key: AnchorKey) => boolean;
   addTask: (input: NewTask) => string;
   setRoutineOff: (id: string, off: boolean) => void;
   /** Change a task or routine. Returns false if the edit is not valid (empty title). */
@@ -192,6 +201,7 @@ interface AppState {
   dequeueWall: (id: string) => void;
   setWallDelay: (minutes: number) => void;
   markCheersSeen: (at: string) => void;
+  setWallNote: (text: string) => void;
   unshareDone: (id: string) => void;
 }
 
@@ -221,12 +231,61 @@ const initial = () => ({
   pendingStake: null as PendingStake | null,
   rollDate: '',
   wallQueue: [] as WallItem[],
-  wallDelay: 30,
+  wallDelay: 0,
   cheersSeen: '',
+  wallNote: '',
 });
 
 /** A short unique id, safe even if two are made in the same millisecond. */
 const uid = (prefix: string) => `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const ANCHOR_ORDER: AnchorKey[] = ['wake', 'leave', 'home', 'sleep'];
+const fmtTime = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+/** Earliest and latest minute an anchor can take, given the others that are already set. */
+function anchorBounds(anchors: Anchors, key: AnchorKey): { lower: number; upper: number } {
+  const i = ANCHOR_ORDER.indexOf(key);
+  const before = ANCHOR_ORDER.slice(0, i).map((k) => anchors[k]).filter((v): v is number => v != null);
+  const after = ANCHOR_ORDER.slice(i + 1).map((k) => anchors[k]).filter((v): v is number => v != null);
+  return { lower: before.length ? Math.max(...before) : 0, upper: after.length ? Math.min(...after) : 1439 };
+}
+
+/** Write one anchor time into today's history row (or clear it with null). */
+function updateLog(log: AnchorDay[], date: string, s: { rest: RestMode }, key: AnchorKey, t: number | null): AnchorDay[] {
+  const dow = dowOf(date || '2026-01-05');
+  const free = s.rest !== 'normal' || dow === 0 || dow === 6;
+  const idx = log.findIndex((d) => d.date === date);
+  const next = [...log];
+  if (t == null) {
+    if (idx >= 0) {
+      const { [key]: _gone, ...rest } = next[idx];
+      next[idx] = rest as AnchorDay;
+    }
+    return next;
+  }
+  const entry = bump(idx >= 0 ? next[idx] : undefined, date, free, key, t);
+  if (idx >= 0) next[idx] = entry;
+  else next.push(entry);
+  return next.slice(-60);
+}
+
+/** Record an anchor at time t. Sleep also closes the day: skipped tasks roll over and missed stakes cost XP. */
+function applyAnchor(s: AppState, key: AnchorKey, t: number): Partial<AppState> {
+  const anchors = { ...s.anchors, [key]: t };
+  const dow = dowOf(s.date || '2026-01-05');
+  const base = { anchors, anchorLog: updateLog(s.anchorLog, s.date, s, key, t) };
+  if (key !== 'sleep') return base;
+  const rest = s.rest !== 'normal';
+  const missed = rest ? [] : missedStakes(s.tasks, dow, s.date);
+  const xp = missed.length ? applyPenalty(s.xp, missed.length) : s.xp;
+  return {
+    ...base,
+    tasks: rollover(s.tasks, dow, rest, s.date),
+    xp,
+    pendingStake: missed.length ? { titles: missed.map((m) => m.title), loss: s.xp - xp } : s.pendingStake,
+    rollDate: s.date,
+  };
+}
+
 const clampMins = (m: number) => Math.min(480, Math.max(1, Math.round(m)));
 const cleanSteps = (steps: string[]) => steps.map((x) => x.trim().slice(0, 160)).filter(Boolean);
 
@@ -254,6 +313,7 @@ export const useApp = create<AppState>()(
           let tasks = s.tasks;
           let xp = s.xp;
           let pendingStake = s.pendingStake;
+          let anchorLog = s.anchorLog;
           const prev = s.date;
           const rest = s.rest !== 'normal';
           // The day ended without a sleep tap: do the end-of-day work now.
@@ -265,6 +325,8 @@ export const useApp = create<AppState>()(
               pendingStake = { titles: missed.map((t) => t.title), loss: s.xp - xp };
             }
             tasks = rollover(tasks, pdow, rest, prev);
+            // No bedtime tap: the day closes by itself at 00:00 and that is logged as the sleep time.
+            if (!s.anchorLog.find((d) => d.date === prev)?.sleep) anchorLog = updateLog(anchorLog, prev, s, 'sleep', 1440);
           }
           // A new day: finished one-off tasks go away, routines come back.
           tasks = tasks
@@ -280,6 +342,7 @@ export const useApp = create<AppState>()(
             tasks,
             xp,
             pendingStake,
+            anchorLog,
             rest: nextRest,
             restUntil: ended ? '' : s.restUntil,
             rollDate: prev || s.rollDate,
@@ -291,29 +354,33 @@ export const useApp = create<AppState>()(
         set((s) => {
           if (s.anchors[key] != null) return s;
           // An anchor is never earlier than the previous anchor or the current time.
-          const t = Math.max(now, ...Object.values(s.anchors));
-          const anchors = { ...s.anchors, [key]: t };
-          const dow = dowOf(s.date || '2026-01-05');
-          const free = s.rest !== 'normal' || dow === 0 || dow === 6;
-          const idx = s.anchorLog.findIndex((d) => d.date === s.date);
-          const log = [...s.anchorLog];
-          const entry = bump(idx >= 0 ? log[idx] : undefined, s.date, free, key, t);
-          if (idx >= 0) log[idx] = entry;
-          else log.push(entry);
-          const base = { anchors, anchorLog: log.slice(-60) };
-          if (key !== 'sleep') return base;
-          // Bedtime: skipped tasks roll over and missed stakes cost XP.
-          const rest = s.rest !== 'normal';
-          const missed = rest ? [] : missedStakes(s.tasks, dow, s.date);
-          const xp = missed.length ? applyPenalty(s.xp, missed.length) : s.xp;
-          return {
-            ...base,
-            tasks: rollover(s.tasks, dow, rest, s.date),
-            xp,
-            pendingStake: missed.length ? { titles: missed.map((m) => m.title), loss: s.xp - xp } : s.pendingStake,
-            rollDate: s.date,
-          };
+          return applyAnchor(s, key, Math.max(now, ...Object.values(s.anchors)));
         }),
+
+      setAnchor: (key, minutes, now) => {
+        const s = get();
+        const m = Math.round(minutes);
+        const { lower, upper } = anchorBounds(s.anchors, key);
+        if (m < lower) return `That is before ${fmtTime(lower)}, the step before it.`;
+        if (m > upper) return `That is after ${fmtTime(upper)}, the step after it.`;
+        if (m > now) return 'That time has not happened yet.';
+        if (s.anchors[key] == null) {
+          set((st) => applyAnchor(st, key, m));
+          return null;
+        }
+        // Already tapped: only move the time. Bedtime work already ran, so Sleep changes the logged time only.
+        set((st) => ({ anchors: { ...st.anchors, [key]: m }, anchorLog: updateLog(st.anchorLog, st.date, st, key, m) }));
+        return null;
+      },
+
+      clearAnchor: (key) => {
+        const s = get();
+        if (s.anchors[key] == null) return true;
+        if (key === 'sleep') return false;
+        const { [key]: _gone, ...anchors } = s.anchors;
+        set({ anchors, anchorLog: updateLog(s.anchorLog, s.date, s, key, null) });
+        return true;
+      },
 
       addTask: ({ title, mins, must, stake, trigger, steps }) => {
         const id = uid('t');
@@ -638,12 +705,14 @@ export const useApp = create<AppState>()(
 
       markCheersSeen: (at) => set({ cheersSeen: at }),
 
+      setWallNote: (text) => set({ wallNote: `${new Date().toTimeString().slice(0, 5)} ${text}`.slice(0, 300) }),
+
       setWallDelay: (minutes) => set({ wallDelay: Math.max(0, Math.min(240, minutes)) }),
 
       unshareDone: (id) => set((s) => ({ done: s.done.map((d) => (d.id === id ? { ...d, shared: false } : d)), wallQueue: s.wallQueue.filter((w) => w.id !== id) })),
     }),
     {
-      name: 'nudge-state-v2',
+      name: 'nudge-state-v3',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({
         tasks: s.tasks,
@@ -670,6 +739,7 @@ export const useApp = create<AppState>()(
         wallQueue: s.wallQueue,
         wallDelay: s.wallDelay,
         cheersSeen: s.cheersSeen,
+        wallNote: s.wallNote,
       }),
     },
   ),

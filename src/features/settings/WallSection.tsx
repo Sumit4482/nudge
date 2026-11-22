@@ -17,6 +17,7 @@ export function WallSection() {
   const delay = useApp((s) => s.wallDelay);
   const setDelay = useApp((s) => s.setWallDelay);
   const queued = useApp((s) => s.wallQueue.length);
+  const note = useApp((s) => s.wallNote);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -84,6 +85,9 @@ export function WallSection() {
           />
         </>
       )}
+      <Text selectable style={{ color: palette.mute, fontFamily: FONT.mono, fontSize: 11.5, lineHeight: 16 }}>
+        {`Status: ${session.userId ? 'signed in' : 'signed out'} · ${queued} waiting\n${note || 'No proof activity yet.'}`}
+      </Text>
     </Card>
   );
 }

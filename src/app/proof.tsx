@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/ui';
 import { saveProofFile } from '@/focus/proofFile';
 import { finishWithProof } from '@/focus/service';
 import { VoiceRecorder } from '@/focus/VoiceRecorder';
+import { toast } from '@/lib/toast';
 import { useApp } from '@/store/useApp';
 import { useWallSession } from '@/wall/useSession';
 import { FONT } from '@/theme';
@@ -43,9 +44,9 @@ export default function Proof() {
   const canVoice = mode === 'teach' || (mode === 'task' && tag === 'study');
   const showPhoto = mode !== 'teach';
   const ready = mode === 'teach' ? !!audio : !!uri || !!audio;
-  // Posting to the public wall: photos only, never bills or voice notes. Life proofs are off by default.
+  // Posting to the public wall: photos only, never bills or voice notes. On by default; switch it off for a private one.
   const canShare = wall.configured && mode === 'task' && !!uri && !audio;
-  const share = canShare && !!wall.userId && (shareOverride ?? tag !== 'life');
+  const share = canShare && !!wall.userId && (shareOverride ?? true);
 
   const take = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -72,6 +73,10 @@ export default function Proof() {
       if (mode === 'bill' && bill && p.due) st.payBill(bill.id, p.due, photo);
       else if (mode === 'teach') st.award({ title, tag: 'study', xp: 25, audio: voice });
       else await finishWithProof({ photo, audio: voice }, share);
+      st.setWallNote(`Submitted: ${canShare ? (share ? 'queued for the wall' : wall.userId ? 'not shared, switch off' : 'not shared, not signed in') : `not shareable (${!wall.configured ? 'wall not configured' : mode !== 'task' ? mode : !uri ? 'no photo' : 'voice note'})`}.`);
+      if (canShare) {
+        toast(share ? (st.wallDelay ? `Queued for your wall. It posts in ${st.wallDelay} min.` : 'Queued for your wall. It posts in a moment.') : wall.userId ? 'Not on your wall: the share switch was off.' : 'Not on your wall: sign in under Settings first.');
+      }
       router.replace('/reward');
     } catch {
       setBusy(false);
@@ -146,7 +151,7 @@ export default function Proof() {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FONT.bodySemi, fontSize: 15, color: INK }}>Show on my proof wall</Text>
                 <Text style={{ fontFamily: FONT.body, fontSize: 12, color: MUTE, marginTop: 2 }}>
-                  {wall.userId ? `Public. Posts after ${useApp.getState().wallDelay} min, location removed.` : 'Sign in under Settings to post.'}
+                  {!wall.userId ? 'Sign in under Settings to post.' : share ? `On. Public, ${useApp.getState().wallDelay ? `posts after ${useApp.getState().wallDelay} min` : 'posts right away'}, location removed.` : 'Off. This proof stays on your phone.'}
                 </Text>
               </View>
               <Switch value={share} disabled={!wall.userId} onValueChange={setShareOverride} trackColor={{ false: '#E4D8CF', true: '#3F9F7F' }} thumbColor="#fff" accessibilityLabel="Show on my proof wall" />

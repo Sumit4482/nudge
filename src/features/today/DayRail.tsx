@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Pulse } from '@/components/Pulse';
 import { Card, PrimaryButton } from '@/components/ui';
@@ -68,7 +69,13 @@ export function DayRail({ now, dow, date }: { now: number; dow: number; date: st
             const isDone = t != null;
             const isNext = n.key === next;
             return (
-              <View key={n.key} style={styles.node}>
+              <Pressable
+                key={n.key}
+                accessibilityRole="button"
+                accessibilityLabel={isDone ? `${n.label} at ${fmt(t)}. Tap to change or undo.` : `${n.label}. Tap to set the time.`}
+                onPress={() => router.push({ pathname: '/edit-anchor', params: { key: n.key } })}
+                style={styles.node}
+              >
                 <View style={styles.circleWrap}>
                   {isNext ? <Pulse color={palette.accent} size={40} /> : null}
                   <View
@@ -84,7 +91,7 @@ export function DayRail({ now, dow, date }: { now: number; dow: number; date: st
                 <Text style={{ color: isDone ? palette.ink : palette.mute, fontFamily: FONT.mono, fontSize: 11.5 }}>
                   {isDone ? fmt(t) : `~${fmt(at[n.key])}`}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -95,7 +102,7 @@ export function DayRail({ now, dow, date }: { now: number; dow: number; date: st
       ) : (
         <PrimaryButton label="Start a new day (demo)" icon="repeat" onPress={resetDay} />
       )}
-      <Text style={[styles.hint, { color: palette.mute, fontFamily: FONT.body }]}>{next ? BUTTON[next].hint : 'Day closed. Rest well.'}</Text>
+      <Text style={[styles.hint, { color: palette.mute, fontFamily: FONT.body }]}>{next ? `${BUTTON[next].hint}${doneCount ? ' Wrong time? Tap a step above to fix it.' : ''}` : 'Day closed. Rest well.'}</Text>
     </Card>
   );
 }
