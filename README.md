@@ -67,4 +67,4 @@ Small changes (screens, logic, text, styles) can reach a preview or production b
 
 Your routines, exercises, study topics and goals live in `src/store/seed.ts`. Your usual day (wake 06:30, leave 10:00, home 19:45, sleep 22:30) is in `src/lib/times.ts`. The planner keeps its own generic defaults in `src/planner/constants.ts`.
 
-The app saves its state on the phone. Editing the seed changes nothing on a phone that already has saved data. To load a changed seed on a fresh start, bump the storage name in `src/store/useApp.ts` (currently `nudge-state-v2`). That also resets XP, streak and history. The old demo data used for tests is in `src/store/demoSeed.ts`.
+The app saves its state on the phone. Editing the seed changes nothing on a phone that already has saved data. To load a changed seed on a fresh start, bump the storage name in `src/store/useApp.ts` (currently `nudge-state-v3`). That also resets XP, streak and history. The old demo data used for tests is in `src/store/demoSeed.ts`.

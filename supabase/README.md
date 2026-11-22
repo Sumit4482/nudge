@@ -8,7 +8,7 @@
 6. In the app: **You → Settings → Proof wall**: enter that email and password, tap Sign in.
 7. The website in `web/` reads the same project. Put the same two values in `web/.env.local` (see `web/.env.example`).
 
-Privacy: proofs are private until you flip **Show on my proof wall** on a proof. Posts appear after the delay you set (default 30 minutes). Photos are re-saved before upload, which removes location data. Bills and voice notes can never be posted.
+Privacy: proofs are private until you flip **Show on my proof wall** on a proof. Posts appear after the delay you set (default none, so they post right away). Photos are re-saved before upload, which removes location data. Bills and voice notes can never be posted.
 
 ## Cheers, names and phone notifications
 
