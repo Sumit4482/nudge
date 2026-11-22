@@ -3,6 +3,7 @@ import { Clouds } from '@/components/Clouds';
 import { Garden } from '@/components/Garden';
 import { Heatmap } from '@/components/Heatmap';
 import { HeroCopy } from '@/components/HeroCopy';
+import { NoteCard } from '@/components/NoteCard';
 import { ProofWall, type WallProof } from '@/components/ProofWall';
 import { Reveal } from '@/components/Reveal';
 import { ScrollLink } from '@/components/ScrollLink';
@@ -41,7 +42,7 @@ export default async function Home() {
       <Swarm />
       <Reveal />
       <noscript>
-        <style>{'[data-reveal],.hc{opacity:1!important;transform:none!important}'}</style>
+        <style>{'[data-reveal],.hc,.nw,.note-sig{opacity:1!important;transform:none!important;clip-path:none!important}'}</style>
       </noscript>
 
       <nav className="pill" aria-label="Sections">
@@ -63,6 +64,7 @@ export default async function Home() {
             </div>
             {data.sample ? <p className="sample-note">Preview with made-up examples.</p> : null}
           </div>
+          <NoteCard name={SITE.name} />
         </section>
 
         <section className="wrap nums" data-reveal>
