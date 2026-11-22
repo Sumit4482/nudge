@@ -1,97 +1,113 @@
-const STAGES = ['Seeds', 'Sprouts', 'Growing', 'In bloom', 'Orchard'] as const;
-const NEXT = [3, 7, 14, 30, null] as const;
-const FLOWERS = ['#F4A6A0', '#F6D58B', '#A9C8F0', '#C9B6E8', '#F2B8D2'];
+'use client';
 
-export const gardenStage = (streak: number) => (streak >= 30 ? 4 : streak >= 14 ? 3 : streak >= 7 ? 2 : streak >= 3 ? 1 : 0);
-export const gardenCaption = (streak: number) => {
-  const st = gardenStage(streak);
-  return `${STAGES[st]}. ${streak}-day streak${NEXT[st] ? `, next stage at ${NEXT[st]} days` : ''}. It grows with every proof and only rests when life gets in the way.`;
-};
+import { useEffect, useRef, useState } from 'react';
 
-function Leaf({ x, y, r }: { x: number; y: number; r: number }) {
-  return <ellipse cx={x} cy={y} rx="9" ry="4.5" transform={`rotate(${r} ${x} ${y})`} fill="#7DB58F" />;
-}
+import { BEES_DISTURB } from '@/lib/bees';
+import { gardenStage, STAGES } from '@/lib/garden';
 
-function Plant({ cx, st, col }: { cx: number; st: number; col: string }) {
-  const y = 112;
-  const stem = (h: number) => <path d={`M${cx} ${y} v-${h}`} stroke="#6FA383" strokeWidth="3" strokeLinecap="round" fill="none" />;
-  if (st === 0)
-    return (
-      <>
-        <ellipse cx={cx} cy={y - 2} rx="10" ry="4" fill="#9A7B60" />
-        <circle cx={cx} cy={y - 5} r="2.5" fill="#6E533D" />
-      </>
-    );
-  if (st === 1)
-    return (
-      <>
-        {stem(24)}
-        <Leaf x={cx - 8} y={y - 24} r={-30} />
-        <Leaf x={cx + 8} y={y - 27} r={30} />
-      </>
-    );
-  if (st === 2)
-    return (
-      <>
-        {stem(44)}
-        <Leaf x={cx - 9} y={y - 16} r={-25} />
-        <Leaf x={cx + 9} y={y - 25} r={25} />
-        <Leaf x={cx - 9} y={y - 34} r={-25} />
-        <Leaf x={cx + 9} y={y - 43} r={25} />
-      </>
-    );
-  if (st === 3) {
-    const fy = y - 62;
-    return (
-      <>
-        {stem(56)}
-        <Leaf x={cx - 9} y={y - 18} r={-25} />
-        <Leaf x={cx + 9} y={y - 30} r={25} />
-        <Leaf x={cx - 9} y={y - 40} r={-25} />
-        {[0, 72, 144, 216, 288].map((a) => (
-          <ellipse key={a} cx={cx} cy={fy - 8} rx="5" ry="8" transform={`rotate(${a} ${cx} ${fy})`} fill={col} />
-        ))}
-        <circle cx={cx} cy={fy} r="4.5" fill="#F7D774" />
-      </>
-    );
-  }
+/** How full the jar is at each stage. */
+const LEVEL = [0.07, 0.28, 0.5, 0.72, 0.94] as const;
+/** Small honeycomb cells floating in the honey, lowest first. */
+const CELLS: [number, number][] = [
+  [100, 198], [78, 190], [122, 192], [90, 176], [114, 178], [70, 168], [126, 168], [100, 150], [82, 134], [118, 130],
+];
+const CELLS_AT = [0, 1, 3, 5, 8] as const;
+
+function Bee({ x, y, flip = false }: { x: number; y: number; flip?: boolean }) {
   return (
-    <>
-      <rect x={cx - 4} y={y - 48} width="8" height="48" rx="3" fill="#9A7B60" />
-      <circle cx={cx} cy={y - 62} r="20" fill="#7DB58F" />
-      <circle cx={cx - 14} cy={y - 50} r="13" fill="#8CC29F" />
-      <circle cx={cx + 14} cy={y - 50} r="13" fill="#6FA383" />
-      <circle cx={cx - 6} cy={y - 68} r="3.5" fill={col} />
-      <circle cx={cx + 9} cy={y - 58} r="3.5" fill={col} />
-    </>
+    <g className={`bee${flip ? ' b2' : ''}`}>
+      <g transform={`translate(${x} ${y}) scale(${flip ? -1 : 1} 1)`}>
+        <ellipse className="w" cx="-3" cy="-7" rx="6" ry="4" fill="#EAF4FB" opacity=".95" />
+        <ellipse className="w" cx="5" cy="-8" rx="6" ry="4" fill="#EAF4FB" opacity=".95" />
+        <ellipse cx="1" cy="0" rx="10" ry="7" fill="#FBD76B" />
+        <path d="M-2 -6 V6 M3 -6.5 V6.5" stroke="#6B5A3E" strokeWidth="2.4" strokeLinecap="round" />
+        <circle cx="9" cy="-1" r="1.4" fill="#6B5A3E" />
+      </g>
+    </g>
   );
 }
 
-export function Garden({ streak, level }: { streak: number; level: number }) {
+const JAR = 'M54 70 Q54 56 68 56 H132 Q146 56 146 70 V190 Q146 212 124 212 H76 Q54 212 54 190 Z';
+
+const SEEN_KEY = 'nudge-bee-seen';
+
+/** A glass jar that fills with honey, cell by cell, as the streak grows. Tapping it disturbs every bee on the page. */
+export function Garden({ streak }: { streak: number }) {
   const st = gardenStage(streak);
-  const pots = Math.min(5, Math.max(1, level));
+  const top = 210 - LEVEL[st] * (210 - 68);
+  // A long wave so the surface can drift sideways forever without a gap.
+  const surface = `M-46 ${top} Q-23 ${top - 7} 0 ${top} T46 ${top} T92 ${top} T138 ${top} T184 ${top} T230 ${top}`;
+  const [loiter, setLoiter] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  // One small bee waits on the lid until the jar has been tapped once. After that it leaves and behaves as usual.
+  useEffect(() => {
+    try {
+      setLoiter(localStorage.getItem(SEEN_KEY) !== '1');
+    } catch {
+      setLoiter(true);
+    }
+  }, []);
+
+  const release = () => {
+    window.dispatchEvent(new Event(BEES_DISTURB)); // every bee on the page panics, even one that is busy building
+    if (loiter && !leaving) {
+      setLeaving(true); // it takes off, then goes
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setLoiter(false), 1000);
+      try {
+        localStorage.setItem(SEEN_KEY, '1');
+      } catch {}
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    btn.current?.animate(
+      [{ transform: 'rotate(0)' }, { transform: 'rotate(-3deg) scale(1.02)' }, { transform: 'rotate(3deg)' }, { transform: 'rotate(-1.5deg)' }, { transform: 'rotate(0)' }],
+      { duration: 650, easing: 'ease-in-out' },
+    );
+  };
+
   return (
-    <svg viewBox="0 0 340 150" role="img" aria-label={`Garden with ${pots} plants, stage ${STAGES[st]}`}>
-      <rect x="0" y="138" width="340" height="12" rx="6" fill="currentColor" opacity=".08" />
-      {Array.from({ length: 5 }, (_, i) => {
-        const cx = 34 + i * 68;
-        const on = i < pots;
-        return (
-          <g key={i} opacity={on ? 1 : 0.3}>
-            <path d={`M${cx - 15} 120h30l-4 20h-22z`} fill="#C98A6B" />
-            <rect x={cx - 18} y="113" width="36" height="9" rx="3" fill="#D9A184" />
-            {on ? (
-              <g className="plant" style={{ animationDelay: `${i * 140}ms` }}>
-                <g className="sway" style={{ animationDelay: `${i * 500}ms` }}>
-                  <Plant cx={cx} st={st} col={FLOWERS[i]} />
-                </g>
-              </g>
-            ) : (
-              <text x={cx} y="100" textAnchor="middle" fontSize="11" fill="currentColor">{`Lv ${i + 1}`}</text>
-            )}
+    <div className="jar-wrap">
+      <button ref={btn} className="jar-btn" onClick={release} aria-label="Tap the honey jar">
+        <svg viewBox="0 0 200 230" role="img" aria-label={`A honey jar, stage ${STAGES[st]}`}>
+          <defs>
+            <clipPath id="jarClip">
+              <path d={JAR} />
+            </clipPath>
+          </defs>
+          <ellipse cx="100" cy="220" rx="62" ry="8" fill="currentColor" opacity=".1" />
+          <path d={JAR} fill="#FFF6DC" />
+          <g clipPath="url(#jarClip)">
+            <g className="jar-wave">
+              <path d={`${surface} V220 H-46 Z`} fill="#F7D06A" />
+              <path d={surface} fill="none" stroke="#FBE3A0" strokeWidth="4" strokeLinecap="round" />
+            </g>
+            {CELLS.slice(0, CELLS_AT[st]).map(([x, y], i) => (
+              <path key={i} className="jar-cell" style={{ animationDelay: `${i * 0.7}s` }} d={`M${x} ${y - 7} l6 3.5 v7 l-6 3.5 l-6 -3.5 v-7z`} fill="#EDB43C" opacity=".9" />
+            ))}
           </g>
-        );
-      })}
-    </svg>
+          <path d={JAR} fill="none" stroke="#EADBB5" strokeWidth="3.4" />
+          <path d="M66 76 C66 110 69 140 73 170" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity=".85" />
+          <rect x="60" y="38" width="80" height="22" rx="9" fill="#F3C9A8" />
+          <rect x="60" y="38" width="80" height="8" rx="4" fill="#F9DAC0" />
+          {loiter ? (
+            <g className={`loiter${leaving ? ' gone' : ''}`}>
+              <g transform="translate(110 33)">
+                <path d="M-3 6 l-1.5 3 M2 6 l1.5 3" stroke="#6B5A3E" strokeWidth="1.4" strokeLinecap="round" />
+                <ellipse className="lw" cx="-2" cy="-5" rx="5" ry="3" transform="rotate(-30 -2 -5)" fill="#EAF4FB" opacity=".95" />
+                <ellipse cx="0" cy="0" rx="8.5" ry="6" fill="#FBD76B" />
+                <path d="M-3 -5 V5 M2 -5.4 V5.4" stroke="#6B5A3E" strokeWidth="2.2" strokeLinecap="round" />
+                <circle cx="7.4" cy="-1" r="1.3" fill="#6B5A3E" />
+              </g>
+            </g>
+          ) : null}
+          {st >= 3 ? <Bee x={40} y={34} /> : null}
+          {st >= 4 ? <Bee x={164} y={46} flip /> : null}
+        </svg>
+      </button>
+    </div>
   );
 }

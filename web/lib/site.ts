@@ -1,8 +1,8 @@
 /** Change the name here and it updates everywhere. */
 export const SITE = {
   name: 'Sumit',
-  title: 'Sumit is really working',
-  description: 'Every tick on this page has a photo behind it. A public proof wall from the Nudge app.',
+  title: 'Sumit: small steps, quietly done',
+  description: 'A calm record of what Sumit finishes each day, with a photo for every one.',
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
 };
 

@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, DM_Mono, Figtree } from 'next/font/google';
+import { Figtree, Outfit } from 'next/font/google';
+import { TITLE_FONT_VARS } from '@/lib/fonts';
 import { SITE } from '@/lib/site';
 import './globals.css';
 
-const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display', weight: ['500', '600', '700'] });
 const body = Figtree({ subsets: ['latin'], variable: '--font-body', weight: ['400', '500', '600', '700'] });
-const mono = DM_Mono({ subsets: ['latin'], variable: '--font-mono', weight: ['400', '500'] });
+const head = Outfit({ subsets: ['latin'], variable: '--font-head', weight: ['300', '400', '500', '600'] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -18,9 +18,15 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
+/** Pick one soft palette at random on every visit. ?theme=lilac forces one (handy for previews). Runs before first paint. */
+const THEME_SCRIPT = `(function(){try{var t=['mint','peach','lilac','butter','sky','blossom','mango','matcha','cloud','shore','grape','seafoam'];var m=location.search.match(/theme=(\\w+)/);var c=m&&t.indexOf(m[1])>-1?m[1]:t[Math.floor(Math.random()*t.length)];document.documentElement.setAttribute('data-theme',c)}catch(e){}})()`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${body.variable} ${head.variable} ${TITLE_FONT_VARS}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
