@@ -90,12 +90,6 @@ export default async function Home() {
           </dl>
         </section>
 
-        <section className="sec wrap" id="cheer">
-          <div className="cheer-card" data-reveal>
-            <CheerButton total={data.cheers} name={SITE.name} />
-          </div>
-        </section>
-
         <section className="sec wrap" data-reveal>
           <div className="pair">
             <article className="tile">
@@ -117,6 +111,12 @@ export default async function Home() {
           <ProofWall proofs={proofs} />
         </section>
 
+
+        <section className="sec wrap" id="cheer">
+          <div className="cheer-card" data-reveal>
+            <CheerButton total={data.cheers} name={SITE.name} />
+          </div>
+        </section>
       </main>
 
       <footer>
